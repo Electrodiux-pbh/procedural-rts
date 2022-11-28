@@ -15,7 +15,8 @@ public enum BlockType {
     LOG(new Color(0x704b28), "log"),
     LEAVE(new Color(0x377325), "leave"),
     IRON(Color.WHITE, "iron"),
-    FLOWER(Color.RED, "flower", true);
+    FLOWER(Color.RED, "flower", true),
+    LAVA(Color.ORANGE, "lava");
 
     private Color color;
     private Texture texture;

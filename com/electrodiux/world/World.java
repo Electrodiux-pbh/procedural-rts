@@ -23,6 +23,28 @@ public class World {
         this.generator = new ChunkGenerator(seed);
     }
 
+    public void update(float dt) {
+
+    }
+
+    public void loadChunk(int x, int z) {
+        int idx = chunkIndex(x, z);
+        if (chunks.containsKey(idx)) {
+            return;
+        } else {
+            Chunk chunk = generator.createChunk(x, z);
+            chunks.put(idx, chunk);
+        }
+    }
+
+    public void unloadChunk(int x, int z) {
+        int idx = chunkIndex(x, z);
+        Chunk chunk = chunks.remove(idx);
+        if (chunk != null) {
+            chunk.destroyArrayReference();
+        }
+    }
+
     public void generate() {
         final int size = 32;
         for (int x = -size; x <= size; x++) {
@@ -34,7 +56,7 @@ public class World {
     }
 
     private int chunkIndex(int x, int z) {
-        return x + z * 100;
+        return x + z * 200;
     }
 
     public void fill(int x1, int y1, int z1, int x2, int y2, int z2, short block) {
@@ -51,7 +73,7 @@ public class World {
     }
 
     public boolean isBlockAt(int x, int y, int z) {
-        if (outOfBounds(x, y, z))
+        if (outOfBounds(y))
             return false;
         return isBlockAt0(x, y, z);
     }
@@ -64,7 +86,7 @@ public class World {
     }
 
     public void setBlock(int x, int y, int z, short block) {
-        if (outOfBounds(x, y, z))
+        if (outOfBounds(y))
             return;
         setBlock0(x, y, z, block);
     }
@@ -94,7 +116,7 @@ public class World {
     }
 
     public short getBlock(int x, int y, int z) {
-        if (outOfBounds(x, y, z))
+        if (outOfBounds(y))
             return Blocks.AIR;
         return getBlock0(x, y, z);
     }
@@ -115,7 +137,7 @@ public class World {
         return chunks;
     }
 
-    public boolean outOfBounds(int x, int y, int z) {
+    public boolean outOfBounds(int y) {
         return y < 0 || y >= Chunk.CHUNK_HEIGHT;
     }
 

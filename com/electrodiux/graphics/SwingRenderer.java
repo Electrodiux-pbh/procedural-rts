@@ -93,7 +93,7 @@ public class SwingRenderer {
         this.frame.setTitle(string);
     }
 
-    private final int blocksOnScreen = 50;
+    public static final int blocksOnScreen = 50;
 
     private final Tile[] renderCache = new Tile[50 * 50 * 64];
     private int cacheX, cacheZ, cacheY, cacheSize;
@@ -139,13 +139,12 @@ public class SwingRenderer {
             int cacheIdx = 0;
             for (int x = xStart; x < xEnd; x++) {
                 for (int z = zStart; z < zEnd; z++) {
-                    yloop: for (int y = 0; y < world.getWorldHeight(); y++) {
-                        if (y < 0 || y >= world.getWorldHeight()) {
-                            continue yloop;
-                        }
-
-                        Chunk chunk = world.getChunk(x >> Chunk.CHUNK_SIZE_BYTESHIFT, z >> Chunk.CHUNK_SIZE_BYTESHIFT);
+                    for (int y = 0; y < world.getWorldHeight(); y++) {
+                        int chunkX = x >> Chunk.CHUNK_SIZE_BYTESHIFT;
+                        int chunkZ = z >> Chunk.CHUNK_SIZE_BYTESHIFT;
+                        Chunk chunk = world.getChunk(chunkX, chunkZ);
                         if (chunk == null) {
+                            world.loadChunk(chunkX, chunkZ);
                             continue;
                         }
 
@@ -153,34 +152,29 @@ public class SwingRenderer {
 
                         int blockIndex = Chunk.getBlockIndexWithWorldCoords(x, y, z);
 
-                        if (blocks[blockIndex] == Blocks.AIR) {
-                            continue;
+                        if (blocks[blockIndex] != Blocks.AIR
+                                && isVisible(world, x, y, z, xStart, zStart, xEnd, zEnd)) {
+                            BlockType block = Blocks.getBlockType(blocks[blockIndex]);
+
+                            Texture texture = block.getTexture();
+
+                            int xR = (int) (((x * tileXFactor + z * tileZFactor) - tileXFactor) +
+                                    posX * size);
+                            int yR = (int) ((((x - y) * tileYFactor + (z - y) * tileYFactor) + posZ * size) - posY);
+
+                            if (xR > -size && xR < canvas.getWidth() && yR > -size && yR < canvas.getHeight()) {
+                                g.drawImage(texture.getData(), xR, yR, size, size, null);
+                            }
+                            if (renderCache[cacheIdx] == null) {
+                                renderCache[cacheIdx] = new Tile(texture.getData(), xR, yR);
+                            } else {
+                                Tile t = renderCache[cacheIdx];
+                                t.x = xR;
+                                t.y = yR;
+                                t.texture = texture.getData();
+                            }
+                            cacheIdx++;
                         }
-
-                        if (!isVisible(world, x, y, z, xStart, zStart, xEnd, zEnd)) {
-                            continue;
-                        }
-
-                        BlockType block = Blocks.getBlockType(blocks[blockIndex]);
-
-                        Texture texture = block.getTexture();
-
-                        int xR = (int) (((x * tileXFactor + z * tileZFactor) - tileXFactor) +
-                                posX * size);
-                        int yR = (int) ((((x - y) * tileYFactor + (z - y) * tileYFactor) + posZ * size) - posY);
-
-                        if (xR > -size && xR < canvas.getWidth() && yR > -size && yR < canvas.getHeight()) {
-                            g.drawImage(texture.getData(), xR, yR, size, size, null);
-                        }
-                        if (renderCache[cacheIdx] == null) {
-                            renderCache[cacheIdx] = new Tile(texture.getData(), xR, yR);
-                        } else {
-                            Tile t = renderCache[cacheIdx];
-                            t.x = xR;
-                            t.y = yR;
-                            t.texture = texture.getData();
-                        }
-                        cacheIdx++;
                     }
                 }
             }

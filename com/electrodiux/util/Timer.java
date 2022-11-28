@@ -41,7 +41,7 @@ public class Timer {
 	 * Creates a new Timer object and synchronize the timer to the specific fps
 	 * calling {@link #sync(int)}
 	 */
-	public Timer(int fps) {
+	public Timer(float fps) {
 		this();
 		sync(fps);
 	}

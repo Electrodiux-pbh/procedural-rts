@@ -1,15 +1,17 @@
 package com.electrodiux.world;
 
+import java.io.Serializable;
+
 import com.electrodiux.block.Blocks;
 
-public class Chunk {
+public class Chunk implements Serializable {
 
     public static final int CHUNK_SIZE = 16;
     public static final int CHUNK_SIZE_BYTESHIFT = 4;
     public static final int CHUNK_AREA = CHUNK_SIZE * CHUNK_SIZE;
     public static final int CHUNK_HEIGHT = 128;
 
-    private final short[] blocks;
+    private short[] blocks;
 
     private final int chunkX, chunkZ;
 
@@ -71,6 +73,14 @@ public class Chunk {
         return x < 0 || y < 0 || z < 0 || x >= CHUNK_SIZE || y >= CHUNK_HEIGHT || z >= CHUNK_SIZE;
     }
 
+    ChunkIndex createChunkIndex() {
+        return new ChunkIndex(chunkX, chunkZ);
+    }
+
+    void destroyArrayReference() {
+        blocks = null;
+    }
+
     public static int getBlockIndexWithWorldCoords(int x, int y, int z) {
         // x = -16 => x = -15 beacuse negative chunks starts at
         // -1 and positive chunks starts at 0
@@ -90,4 +100,34 @@ public class Chunk {
         return getBlockIndex(x, y, z);
     }
 
+    public static class ChunkIndex {
+
+        private int x, z;
+
+        private ChunkIndex(int x, int z) {
+            this.x = x;
+            this.z = z;
+        }
+
+        public int getX() {
+            return x;
+        }
+
+        public int getZ() {
+            return z;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (obj instanceof ChunkIndex idx) {
+                return this.x == idx.x && this.z == idx.z;
+            }
+            return super.equals(obj);
+        }
+
+        @Override
+        public int hashCode() {
+            return Double.hashCode(x) + 31 * Double.hashCode(z);
+        }
+    }
 }

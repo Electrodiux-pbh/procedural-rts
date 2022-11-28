@@ -11,6 +11,7 @@ public class Blocks {
     public static final byte LEAVE = 7;
     public static final byte IRON = 8;
     public static final byte FLOWER = 9;
+    public static final byte LAVA = 10;
 
     public static final BlockType[] blocks = new BlockType[128];
 
@@ -31,5 +32,6 @@ public class Blocks {
         blocks[Blocks.LEAVE] = BlockType.LEAVE;
         blocks[Blocks.IRON] = BlockType.IRON;
         blocks[Blocks.FLOWER] = BlockType.FLOWER;
+        blocks[Blocks.LAVA] = BlockType.LAVA;
     }
 }
