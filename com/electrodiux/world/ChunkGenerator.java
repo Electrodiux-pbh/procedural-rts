@@ -2,6 +2,8 @@ package com.electrodiux.world;
 
 import static com.electrodiux.world.Chunk.CHUNK_HEIGHT;
 import static com.electrodiux.world.Chunk.CHUNK_SIZE;
+import static com.electrodiux.world.Chunk.CHUNK_SIZE_BITMASK;
+import static com.electrodiux.world.Chunk.CHUNK_SIZE_BYTESHIFT;
 
 import com.electrodiux.block.Blocks;
 import com.electrodiux.util.NoiseGenerator;
@@ -26,7 +28,7 @@ public class ChunkGenerator {
 
     public void generateDebug(Chunk chunk, int chkX, int chkZ) {
         fill(chunk, 0, 0, 0, 15, 0, 15,
-                ((chunk.getChunkX() + chunk.getChunkZ() % 2) % 2 == 0) ? Blocks.WATER : Blocks.STONE);
+                (((chunk.getChunkX() + chunk.getChunkZ() & 1) & 1) == 0) ? Blocks.WATER : Blocks.STONE);
     }
 
     public void generate(Chunk chunk) {
@@ -45,8 +47,8 @@ public class ChunkGenerator {
                 100, 5, 2.4f, 0.5f);
 
         for (int j = 0; j < heightNoise.length; j++) {
-            int bkX = (j % CHUNK_SIZE);
-            int bkZ = (j / CHUNK_SIZE);
+            int bkX = (j & CHUNK_SIZE_BITMASK);
+            int bkZ = (j >> CHUNK_SIZE_BYTESHIFT);
 
             int height = (((int) heightNoise[j] + 100) / 2) + 20;
 
@@ -68,18 +70,23 @@ public class ChunkGenerator {
         float[] cave = noiseGenerator.getNoise2D(CHUNK_SIZE, CHUNK_SIZE, chunk.getBlockX(), chunk.getBlockZ(), 1, 2,
                 2.4f, 0.5f);
         carverGenerator.setClampValues(-CAVE_LEVEL, CAVE_LEVEL);
+        float[] caveY = carverGenerator.getNoise2D(CHUNK_SIZE, CHUNK_SIZE, chunk.getBlockX(), chunk.getBlockZ(),
+                CAVE_LEVEL, 3, 2f, 0.5f);
+
+        carverGenerator.setChunkSize(128);
+        carverGenerator.setClampValues(-8, 8);
         float[] caveHeight = carverGenerator.getNoise2D(CHUNK_SIZE, CHUNK_SIZE, chunk.getBlockX(), chunk.getBlockZ(),
-                CAVE_LEVEL, 3, 2.4f, 0.5f);
+                8, 2, 2f, 0.4f);
 
         for (int i = 0; i < Chunk.CHUNK_AREA; i++) {
-            int x = i % CHUNK_SIZE;
-            int z = i / CHUNK_SIZE;
+            int x = (i & CHUNK_SIZE_BITMASK);
+            int z = (i >> CHUNK_SIZE_BYTESHIFT);
 
             if (Math.abs(cave[i]) < 0.15f) {
-                for (int j = (int) (Math.abs(cave[i]) * 70); j >= 0; j--) {
-                    int height = (((int) caveHeight[i] + CAVE_LEVEL) / 2) + 2 - j;
+                for (int j = (int) caveHeight[i] + 4; j >= 0; j--) {
+                    int height = (((int) caveY[i] + CAVE_LEVEL) >> 1) + 2 - j;
                     short block = getBlock(chunk, x, height, z);
-                    if (block == Blocks.STONE || block == Blocks.DIRT || block == Blocks.GRASS) {
+                    if (block == Blocks.STONE) {
                         setBlock(chunk, x, height, z, Blocks.AIR);
                     }
                 }

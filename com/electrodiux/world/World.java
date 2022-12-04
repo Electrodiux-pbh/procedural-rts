@@ -3,6 +3,7 @@ package com.electrodiux.world;
 import static com.electrodiux.world.Chunk.CHUNK_HEIGHT;
 import static com.electrodiux.world.Chunk.CHUNK_SIZE_BYTESHIFT;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -12,7 +13,7 @@ public class World {
 
     private transient ChunkGenerator generator;
 
-    private final Map<Integer, Chunk> chunks;
+    private final Map<ChunkIndex, Chunk> chunks;
 
     private long seed;
 
@@ -23,12 +24,8 @@ public class World {
         this.generator = new ChunkGenerator(seed);
     }
 
-    public void update(float dt) {
-
-    }
-
     public void loadChunk(int x, int z) {
-        int idx = chunkIndex(x, z);
+        ChunkIndexSearch idx = getChunkIndexSearch(x, z);
         if (chunks.containsKey(idx)) {
             return;
         } else {
@@ -38,11 +35,7 @@ public class World {
     }
 
     public void unloadChunk(int x, int z) {
-        int idx = chunkIndex(x, z);
-        Chunk chunk = chunks.remove(idx);
-        if (chunk != null) {
-            chunk.destroyArrayReference();
-        }
+        chunks.remove(getChunkIndexSearch(x, z));
     }
 
     public void generate() {
@@ -50,13 +43,29 @@ public class World {
         for (int x = -size; x <= size; x++) {
             for (int z = -size; z <= size; z++) {
                 Chunk chunk = generator.createChunk(x, z);
-                chunks.put(chunkIndex(x, z), chunk);
+                chunks.put(getChunkIndex(x, z), chunk);
             }
         }
     }
 
-    private int chunkIndex(int x, int z) {
-        return x + z * 200;
+    public static ChunkIndex getChunkIndex(int x, int z) {
+        return new ChunkIndex(x, z);
+    }
+
+    private ChunkIndexSearch chunkIdx = new ChunkIndexSearch(0, 0);
+
+    private ChunkIndexSearch getChunkIndexSearch(int x, int z) {
+        chunkIdx.x = x;
+        chunkIdx.z = z;
+        return chunkIdx;
+    }
+
+    public static int getXFromIndex(long idx) {
+        return (int) (idx >> 32);
+    }
+
+    public static int getZFromIndex(long idx) {
+        return (int) (idx & 0xFFFFFFFFL);
     }
 
     public void fill(int x1, int y1, int z1, int x2, int y2, int z2, short block) {
@@ -112,7 +121,7 @@ public class World {
     }
 
     public Chunk getChunk(int x, int z) {
-        return chunks.get(chunkIndex(x, z));
+        return chunks.get(getChunkIndexSearch(x, z));
     }
 
     public short getBlock(int x, int y, int z) {
@@ -133,8 +142,8 @@ public class World {
         return chunk.getBlocks()[Chunk.getBlockIndexWithWorldCoords(x, y, z)];
     }
 
-    public Map<Integer, Chunk> getChunks() {
-        return chunks;
+    public Collection<Chunk> getChunks() {
+        return chunks.values();
     }
 
     public boolean outOfBounds(int y) {

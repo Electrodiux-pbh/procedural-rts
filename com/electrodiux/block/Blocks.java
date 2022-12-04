@@ -13,7 +13,7 @@ public class Blocks {
     public static final byte FLOWER = 9;
     public static final byte LAVA = 10;
 
-    public static final BlockType[] blocks = new BlockType[128];
+    public static final BlockType[] blocks = new BlockType[11];
 
     public static final BlockType getBlockType(int index) {
         if (index < 0 || index >= blocks.length)
