@@ -3,7 +3,7 @@ package com.electrodiux.block;
 import java.awt.Color;
 
 import com.electrodiux.assets.Texture;
-import com.electrodiux.block.Blocks.BlockMetadataRegister;
+import com.electrodiux.block.BlockRegister.BlockMetadataRegistryBuilder;
 
 public class BlockMetadata {
 
@@ -14,7 +14,7 @@ public class BlockMetadata {
     private final Texture texture;
     private final boolean transparent;
 
-    BlockMetadata(BlockMetadataRegister builder) {
+    BlockMetadata(BlockMetadataRegistryBuilder builder) {
         this.blockName = builder.blockName;
         this.blockId = builder.blockId;
 

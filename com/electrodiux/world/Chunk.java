@@ -13,6 +13,8 @@ public class Chunk implements Serializable {
     public static final int CHUNK_AREA = CHUNK_SIZE * CHUNK_SIZE;
     public static final int CHUNK_HEIGHT = 256; // es potencia natural de 2
 
+    public static final int CHUNK_PALLETE_BATCH_SIZE = 10;
+
     private short[] blocks;
 
     private final int chunkX, chunkZ;
@@ -20,6 +22,7 @@ public class Chunk implements Serializable {
     public Chunk(int x, int z) {
         this.chunkX = x;
         this.chunkZ = z;
+
         blocks = new short[CHUNK_AREA * CHUNK_HEIGHT];
     }
 
@@ -36,17 +39,23 @@ public class Chunk implements Serializable {
     }
 
     public int getBlockX() {
-        return chunkX << CHUNK_SIZE_BYTESHIFT;
+        return chunkX * CHUNK_SIZE;
     }
 
     public int getBlockZ() {
-        return chunkZ << CHUNK_SIZE_BYTESHIFT;
+        return chunkZ * CHUNK_SIZE;
     }
 
     public short getBlock(int x, int y, int z) {
         if (outOfBounds(x, y, z))
             return Blocks.AIR;
         return blocks[getBlockIndex(x, y, z)];
+    }
+
+    public void setBlock(short block, int x, int y, int z) {
+        if (outOfBounds(x, y, z))
+            return;
+        blocks[getBlockIndex(x, y, z)] = block;
     }
 
     public int getHightestYAt(int x, int z) {

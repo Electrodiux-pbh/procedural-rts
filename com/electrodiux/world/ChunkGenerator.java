@@ -5,6 +5,8 @@ import static com.electrodiux.world.Chunk.CHUNK_SIZE;
 import static com.electrodiux.world.Chunk.CHUNK_SIZE_BITMASK;
 import static com.electrodiux.world.Chunk.CHUNK_SIZE_BYTESHIFT;
 
+import java.util.Random;
+
 import com.electrodiux.block.Blocks;
 import com.electrodiux.util.NoiseGenerator;
 
@@ -14,8 +16,18 @@ public class ChunkGenerator {
     private NoiseGenerator noiseGenerator;
     private NoiseGenerator carverGenerator;
 
+    private int perm[];
+
     public ChunkGenerator(long seed) {
         this.seed = seed;
+
+        Random rand = new Random(new Random(seed).nextLong());
+
+        perm = new int[512];
+        for (int i = 0; i < 512; i++) {
+            perm[i] = rand.nextInt(256);
+        }
+
         noiseGenerator = new NoiseGenerator(this.seed);
         carverGenerator = new NoiseGenerator(this.seed * 100);
     }
@@ -39,6 +51,9 @@ public class ChunkGenerator {
         stoneBlobs(chunk);
         lava(chunk);
         decorators(chunk);
+
+        structures(chunk);
+
         fill(chunk, 0, 0, 0, CHUNK_SIZE, 0, CHUNK_SIZE, Blocks.STONE);
     }
 
@@ -125,16 +140,45 @@ public class ChunkGenerator {
         }
     }
 
+    private void structures(Chunk chunk) {
+        // PYRAMID
+
+        float permValue = permutationValue(chunk.getChunkX(), chunk.getChunkZ());
+
+        if (permValue < 0.02f) {
+            int height = getMinPositionForStructure(chunk, 0, 0, 14, 14) - 1;
+            pyramid(chunk, 0, height, 0, 14, height + CHUNK_SIZE, 14, Blocks.STONEBRICKS, Blocks.MOSSY_STONEBRICKS);
+        }
+
+        // HOUSE
+        if (permValue > 0.04f && permValue < 0.08) {
+            int height = getMinPositionForStructure(chunk, 0, 0, 5, 5);
+
+            fill(chunk, 0, height, 0, 5, height, 5, Blocks.STONEBRICKS);
+            fill(chunk, 0, height + 1, 0, 5, height + 5, 5, Blocks.OAK_PLANKS);
+
+            pyramid(chunk, 0, height + 6, 0, 5, height + 12, 5, Blocks.STONEBRICKS);
+        }
+    }
+
+    private int getMinPositionForStructure(Chunk chunk, int x0, int z0, int x1, int z1) {
+        int height = Chunk.CHUNK_HEIGHT;
+        for (int x = x0; x < x1; x++) {
+            for (int z = z0; z < z1; z++) {
+                int value = chunk.getHightestYAt(x, z);
+                if (value < height)
+                    height = value;
+            }
+        }
+        return height;
+    }
+
     private void stoneBlobs(Chunk chunk) {
         noiseGenerator.setClampValues(-100, 100);
         noiseGenerator.setChunkSize(24);
 
         float[] stones = noiseGenerator.getNoise3D(CHUNK_SIZE, CHUNK_HEIGHT, CHUNK_SIZE, chunk.getBlockX(), 0,
                 chunk.getBlockZ(), 100f, 2, 2.7f, 0.47f);
-
-        noiseGenerator.setChunkSize(5);
-        float[] ores = noiseGenerator.getNoise3D(CHUNK_SIZE, CHUNK_HEIGHT, CHUNK_SIZE, chunk.getBlockX(), 0,
-                chunk.getBlockZ(), 100f, 2, 2.7f, 0.45f);
 
         for (int z = 0; z < CHUNK_SIZE; z++) {
             for (int y = 0; y < CHUNK_HEIGHT; y++) {
@@ -148,7 +192,7 @@ public class ChunkGenerator {
                             setBlock(chunk, x, y, z, Blocks.GRANITE);
                         }
 
-                        if (Math.abs(ores[index]) < 0.2f) {
+                        if (permutationValue(x, y, z) < 0.01f) {
                             setBlock(chunk, x, y, z, Blocks.IRON);
                         }
                     }
@@ -242,6 +286,9 @@ public class ChunkGenerator {
                         setBlock(chunk, x, y + 8, z + 1, Blocks.LEAVE);
                     } else if (trees[idx] < -3) {
                         setBlock(chunk, x, y + 1, z, Blocks.FLOWER);
+                    } else if (trees[idx] > 2.1f && trees[idx] < 2.6f) {
+                        setBlock(chunk, x, y + 1, z,
+                                blockShuffle(x, y + 1, z, Blocks.PAEONIA, Blocks.BLUE_ORCHID));
                     }
                 }
             }
@@ -287,17 +334,85 @@ public class ChunkGenerator {
         }
     }
 
-    public void fill(Chunk chunk, int x1, int y1, int z1, int x2, int y2, int z2, short block) {
+    public void fill(Chunk chunk, int x1, int y1, int z1, int x2, int y2, int z2, short... block) {
         short[] blocks = chunk.getBlocks();
         for (int x = x1; x <= x2; x++) {
             for (int z = z1; z <= z2; z++) {
                 for (int y = y1; y <= y2; y++) {
                     if (outOfBounds(x, y, z))
                         continue;
-                    blocks[Chunk.getBlockIndex(x, y, z)] = block;
+                    blocks[Chunk.getBlockIndex(x, y, z)] = blockShuffle(x, y, z, block);
                 }
             }
         }
+    }
+
+    public void pyramid(Chunk chunk, int x1, int y1, int z1, int x2, int y2, int z2, short... block) {
+        short[] blocks = chunk.getBlocks();
+        yiteration: for (int y = y1; y <= y2; y++) {
+            for (int x = x1; x <= x2; x++) {
+                if (x1 > x2)
+                    break yiteration;
+                for (int z = z1; z <= z2; z++) {
+                    if (z1 > z2)
+                        break yiteration;
+                    if (outOfBounds(x, y, z))
+                        continue;
+
+                    blocks[Chunk.getBlockIndex(x, y, z)] = blockShuffle(x, y, z, block);
+                }
+            }
+            x1++;
+            x2--;
+            z1++;
+            z2--;
+        }
+    }
+
+    public short blockShuffle(int x, int y, int z, short... blocks) {
+        if (blocks.length == 1)
+            return blocks[0];
+
+        int numBlocks = blocks.length;
+        double partSize = 1.0 / numBlocks;
+
+        float randomValue = permutationValue(x, y, z);
+
+        int selectedBlockIndex = -1;
+        for (int i = 0; i < numBlocks; i++) {
+            double startRange = i * partSize;
+            double endRange = startRange + partSize;
+
+            if (randomValue >= startRange && randomValue < endRange) {
+                selectedBlockIndex = i;
+                break;
+            }
+        }
+
+        if (selectedBlockIndex == -1) {
+            return blocks[0];
+        } else {
+            return blocks[selectedBlockIndex];
+        }
+    }
+
+    private float permutationValue(int x, int y) {
+        int xi = (int) Math.floor(x) & 255;
+        int yi = (int) Math.floor(y) & 255;
+
+        int val = perm[perm[xi] + yi];
+
+        return (float) val / 256f;
+    }
+
+    private float permutationValue(int x, int y, int z) {
+        int xi = (int) Math.floor(x) & 255;
+        int yi = (int) Math.floor(y) & 255;
+        int zi = (int) Math.floor(z) & 255;
+
+        int val = perm[perm[perm[xi] + yi] + zi];
+
+        return (float) val / 256f;
     }
 
 }

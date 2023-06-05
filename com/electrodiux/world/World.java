@@ -39,11 +39,19 @@ public class World {
     }
 
     public void generate() {
+        System.out.println("Start generating:");
         final int size = 8;
+
+        final int totalChunks = (size * 2 + 1) * (size * 2 + 1);
+
+        int chunksCount = 0;
         for (int x = -size; x <= size; x++) {
             for (int z = -size; z <= size; z++) {
                 Chunk chunk = generator.createChunk(x, z);
                 chunks.put(getChunkIndex(x, z), chunk);
+                chunksCount++;
+
+                System.out.println("Generated: " + (chunksCount * 100 / totalChunks) + "%");
             }
         }
     }

@@ -3,6 +3,7 @@ package com.electrodiux.main;
 import java.util.Collection;
 import java.util.Random;
 
+import com.electrodiux.block.Blocks;
 import com.electrodiux.graphics.Keyboard;
 import com.electrodiux.graphics.Mouse;
 import com.electrodiux.graphics.SwingRenderer;
@@ -17,6 +18,8 @@ public class Main {
     private static float posX, posY, posZ;
 
     public static void main(String[] args) {
+        load();
+
         long seed = new Random().nextLong();
         seed = -757926025042869238L;
 
@@ -73,9 +76,9 @@ public class Main {
                 Collection<Chunk> chunks = world.getChunks();
 
                 int chunkX = ((int) (-2 * posZ - posX + SwingRenderer.blocksOnScreen / 2)
-                        + 100) >> Chunk.CHUNK_SIZE_BYTESHIFT;
+                        + 100) / Chunk.CHUNK_SIZE;
                 int chunkZ = ((int) (-2 * posZ + posX - SwingRenderer.blocksOnScreen / 2)
-                        + 100) >> Chunk.CHUNK_SIZE_BYTESHIFT;
+                        + 100) / Chunk.CHUNK_SIZE;
 
                 for (Chunk chunk : chunks) {
                     if (chunk.getChunkX() < chunkX - 32 || chunk.getChunkX() > chunkX + 32
@@ -86,5 +89,9 @@ public class Main {
             }
         });
         chunkTimer.start();
+    }
+
+    public static void load() {
+        Blocks.loadBlocks();
     }
 }

@@ -17,6 +17,7 @@ import javax.swing.JFrame;
 
 import com.electrodiux.assets.Texture;
 import com.electrodiux.block.BlockMetadata;
+import com.electrodiux.block.BlockRegister;
 import com.electrodiux.block.Blocks;
 import com.electrodiux.world.Chunk;
 import com.electrodiux.world.World;
@@ -96,7 +97,7 @@ public class SwingRenderer {
     public static final int blocksOnScreen = 50;
 
     private final Tile[] renderCache = new Tile[blocksOnScreen * blocksOnScreen * 128];
-    private final BufferedImage[] textureCache = new BufferedImage[Blocks.blocks.length];
+    private final BufferedImage[] textureCache = new BufferedImage[BlockRegister.blocksMetadata.length];
     private int cacheX, cacheZ, cacheSize;
 
     private static class Tile {
@@ -132,8 +133,8 @@ public class SwingRenderer {
             cacheZ = zStart;
 
             if (cacheSize != size) {
-                for (int i = 0; i < Blocks.blocks.length; i++) {
-                    BlockMetadata block = Blocks.blocks[i];
+                for (int i = 0; i < BlockRegister.blocksMetadata.length; i++) {
+                    BlockMetadata block = BlockRegister.blocksMetadata[i];
                     if (block == null)
                         continue;
                     textureCache[i] = Texture.redimension(block.getTexture(), size, size);
@@ -235,7 +236,7 @@ public class SwingRenderer {
             return false;
         }
         short block = world.getBlock(x, y, z);
-        return block == Blocks.AIR || Blocks.getBlockType(block).isTransparent();
+        return block == Blocks.AIR || BlockRegister.getBlockMetadata(block).isTransparent();
     }
 
 }
