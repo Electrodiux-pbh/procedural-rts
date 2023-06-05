@@ -11,7 +11,7 @@ public class Chunk implements Serializable {
     public static final int CHUNK_SIZE_BYTESHIFT = 4; // log2 16 = 4
     public static final int CHUNK_AREA_BYTESHIFT = 8; // log2 256 = 4; 256 = 16^2
     public static final int CHUNK_AREA = CHUNK_SIZE * CHUNK_SIZE;
-    public static final int CHUNK_HEIGHT = 128; // es potencia natural de 2
+    public static final int CHUNK_HEIGHT = 256; // es potencia natural de 2
 
     private short[] blocks;
 

@@ -39,7 +39,7 @@ public class World {
     }
 
     public void generate() {
-        final int size = 32;
+        final int size = 8;
         for (int x = -size; x <= size; x++) {
             for (int z = -size; z <= size; z++) {
                 Chunk chunk = generator.createChunk(x, z);

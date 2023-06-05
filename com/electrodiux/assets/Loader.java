@@ -11,9 +11,6 @@ public class Loader {
     public static Texture loadTexture(String path) {
         BufferedImage buffer;
         try {
-            if (!path.contains(".")) {
-                path += ".png";
-            }
             Image img = ImageIO.read(Loader.class.getResourceAsStream("/src/assets/textures/" + path));
 
             buffer = new BufferedImage(img.getWidth(null), img.getHeight(null), BufferedImage.TYPE_INT_ARGB);

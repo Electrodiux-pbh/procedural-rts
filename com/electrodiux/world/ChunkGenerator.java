@@ -34,10 +34,12 @@ public class ChunkGenerator {
     public void generate(Chunk chunk) {
         heightMaps(chunk);
         sea(chunk);
-        blocks(chunk);
         carvers(chunk);
+        blocks(chunk);
+        stoneBlobs(chunk);
         lava(chunk);
         decorators(chunk);
+        fill(chunk, 0, 0, 0, CHUNK_SIZE, 0, CHUNK_SIZE, Blocks.STONE);
     }
 
     private void heightMaps(Chunk chunk) {
@@ -50,7 +52,7 @@ public class ChunkGenerator {
             int bkX = (j & CHUNK_SIZE_BITMASK);
             int bkZ = (j >> CHUNK_SIZE_BYTESHIFT);
 
-            int height = (((int) heightNoise[j] + 100) / 2) + 20;
+            int height = (((int) heightNoise[j] + 100) / 2) + 50;
 
             if (height >= CHUNK_HEIGHT) {
                 height = CHUNK_HEIGHT - 1;
@@ -60,34 +62,23 @@ public class ChunkGenerator {
         }
     }
 
-    private static final int SEA_LEVEL = 64;
+    private static final int SEA_LEVEL = 95;
     private static final int LAVA_LEVEL = 10;
-    private static final int CAVE_LEVEL = 65;
+    private static final int CAVE_LEVEL = 80;
 
     private void carvers(Chunk chunk) {
-        carverGenerator.setClampValues(-1, 1);
-        carverGenerator.setChunkSize(256);
-        float[] cave = noiseGenerator.getNoise2D(CHUNK_SIZE, CHUNK_SIZE, chunk.getBlockX(), chunk.getBlockZ(), 1, 2,
-                2.4f, 0.5f);
-        carverGenerator.setClampValues(-CAVE_LEVEL, CAVE_LEVEL);
-        float[] caveY = carverGenerator.getNoise2D(CHUNK_SIZE, CHUNK_SIZE, chunk.getBlockX(), chunk.getBlockZ(),
-                CAVE_LEVEL, 3, 2f, 0.5f);
-
+        carverGenerator.setClampValues(-0.9f, 0.8f);
         carverGenerator.setChunkSize(128);
-        carverGenerator.setClampValues(-8, 8);
-        float[] caveHeight = carverGenerator.getNoise2D(CHUNK_SIZE, CHUNK_SIZE, chunk.getBlockX(), chunk.getBlockZ(),
-                8, 2, 2f, 0.4f);
 
-        for (int i = 0; i < Chunk.CHUNK_AREA; i++) {
-            int x = (i & CHUNK_SIZE_BITMASK);
-            int z = (i >> CHUNK_SIZE_BYTESHIFT);
+        float[] cave = noiseGenerator.getNoise3D(CHUNK_SIZE, CAVE_LEVEL, CHUNK_SIZE, chunk.getBlockX(), 0,
+                chunk.getBlockZ(), 0.8f, 5, 2.4f, 0.5f);
 
-            if (Math.abs(cave[i]) < 0.15f) {
-                for (int j = (int) caveHeight[i] + 4; j >= 0; j--) {
-                    int height = (((int) caveY[i] + CAVE_LEVEL) >> 1) + 2 - j;
-                    short block = getBlock(chunk, x, height, z);
-                    if (block == Blocks.STONE) {
-                        setBlock(chunk, x, height, z, Blocks.AIR);
+        for (int z = 0; z < CHUNK_SIZE; z++) {
+            for (int y = 0; y < CAVE_LEVEL; y++) {
+                for (int x = 0; x < CHUNK_SIZE; x++) {
+                    int index = x + y * CHUNK_SIZE + z * CHUNK_SIZE * CAVE_LEVEL;
+                    if (Math.abs(cave[index]) > 0.4f) {
+                        setBlock(chunk, x, y, z, Blocks.AIR);
                     }
                 }
             }
@@ -128,6 +119,38 @@ public class ChunkGenerator {
                     int idx = Chunk.getBlockIndex(x, y, z);
                     if (blocks[idx] == Blocks.AIR) {
                         blocks[idx] = Blocks.LAVA;
+                    }
+                }
+            }
+        }
+    }
+
+    private void stoneBlobs(Chunk chunk) {
+        noiseGenerator.setClampValues(-100, 100);
+        noiseGenerator.setChunkSize(24);
+
+        float[] stones = noiseGenerator.getNoise3D(CHUNK_SIZE, CHUNK_HEIGHT, CHUNK_SIZE, chunk.getBlockX(), 0,
+                chunk.getBlockZ(), 100f, 2, 2.7f, 0.47f);
+
+        noiseGenerator.setChunkSize(5);
+        float[] ores = noiseGenerator.getNoise3D(CHUNK_SIZE, CHUNK_HEIGHT, CHUNK_SIZE, chunk.getBlockX(), 0,
+                chunk.getBlockZ(), 100f, 2, 2.7f, 0.45f);
+
+        for (int z = 0; z < CHUNK_SIZE; z++) {
+            for (int y = 0; y < CHUNK_HEIGHT; y++) {
+                for (int x = 0; x < CHUNK_SIZE; x++) {
+                    int index = x + y * CHUNK_SIZE + z * CHUNK_SIZE * CHUNK_HEIGHT;
+                    // System.out.println(stones[index]);
+                    if (getBlock(chunk, x, y, z) == Blocks.STONE) {
+                        if (stones[index] > 50) {
+                            setBlock(chunk, x, y, z, Blocks.DIORITE);
+                        } else if (stones[index] < -50) {
+                            setBlock(chunk, x, y, z, Blocks.GRANITE);
+                        }
+
+                        if (Math.abs(ores[index]) < 0.2f) {
+                            setBlock(chunk, x, y, z, Blocks.IRON);
+                        }
                     }
                 }
             }

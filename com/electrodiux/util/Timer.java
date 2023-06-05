@@ -245,6 +245,13 @@ public class Timer {
 				deltaTime = 1F / getFps();
 				fpsCounter = 0;
 			}
+
+			try {
+				Thread.yield();
+				Thread.sleep(1);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 

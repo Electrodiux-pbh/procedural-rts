@@ -16,7 +16,7 @@ import java.awt.image.BufferedImage;
 import javax.swing.JFrame;
 
 import com.electrodiux.assets.Texture;
-import com.electrodiux.block.BlockType;
+import com.electrodiux.block.BlockMetadata;
 import com.electrodiux.block.Blocks;
 import com.electrodiux.world.Chunk;
 import com.electrodiux.world.World;
@@ -93,43 +93,6 @@ public class SwingRenderer {
         this.frame.setTitle(string);
     }
 
-    /*
-     * Hay varias maneras en las que podría optimizarse este código. Algunas
-     * posibles sugerencias incluyen:
-     * 
-     * En lugar de almacenar las texturas de los bloques en el cache como objetos
-     * BufferedImage, se podría considerar almacenar los datos de la textura
-     * directamente como un array de bytes o una estructura de datos similar. De
-     * esta manera, se evitaría tener que crear un nuevo objeto BufferedImage cada
-     * vez que se renderiza un bloque, lo que podría mejorar el rendimiento y
-     * reducir el uso de memoria.
-     * 
-     * En el método render, se recorren todos los bloques del mundo para
-     * renderizarlos en la pantalla. Sin embargo, dado que sólo se pueden ver un
-     * número limitado de bloques en cualquier momento, se podría mejorar el
-     * rendimiento recorriendo sólo los bloques que están dentro del área visible en
-     * la pantalla en lugar de todos los bloques del mundo. Esto podría reducir el
-     * tiempo de procesamiento y mejorar el rendimiento.
-     * 
-     * En el método render, se utiliza un bucle anidado para recorrer todos los
-     * bloques del mundo y renderizarlos en la pantalla. Sin embargo, dado que los
-     * bloques están organizados en chunks, se podría mejorar el rendimiento
-     * recorriendo los chunks en lugar de los bloques individuales. De esta manera,
-     * se evitaría tener que realizar una operación de indexado para cada bloque, lo
-     * que podría mejorar el rendimiento.
-     * 
-     * En el método render, se utiliza una estructura de datos llamada renderCache
-     * para almacenar las texturas de los bloques que se han renderizado
-     * previamente. Sin embargo, dado que sólo se pueden ver un número limitado de
-     * bloques en cualquier momento, se podría mejorar el rendimiento utilizando una
-     * estructura de datos más eficiente para almacenar las texturas de los bloques.
-     * Por ejemplo, se podría utilizar una matriz sparse o una estructura de datos
-     * similar que permita almacenar sólo las texturas de los bloques que se están
-     * viendo en cualquier momento. De esta manera, se evitaría tener que almacenar
-     * todas las texturas de los bloques del mundo, lo que podría mejorar el
-     * rendimiento y reducir el uso de memoria.
-     */
-
     public static final int blocksOnScreen = 50;
 
     private final Tile[] renderCache = new Tile[blocksOnScreen * blocksOnScreen * 128];
@@ -170,7 +133,7 @@ public class SwingRenderer {
 
             if (cacheSize != size) {
                 for (int i = 0; i < Blocks.blocks.length; i++) {
-                    BlockType block = Blocks.blocks[i];
+                    BlockMetadata block = Blocks.blocks[i];
                     if (block == null)
                         continue;
                     textureCache[i] = Texture.redimension(block.getTexture(), size, size);
