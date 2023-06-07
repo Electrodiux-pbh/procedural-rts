@@ -19,7 +19,11 @@ public class ChunkIndex {
 
     @Override
     public int hashCode() {
-        return 16337 + (31 * x) + z; // 17 * 31
+        final int prime = 31;
+        int result = 17;
+        result = prime * result + x;
+        result = prime * result + z;
+        return result;
     }
 
     @Override

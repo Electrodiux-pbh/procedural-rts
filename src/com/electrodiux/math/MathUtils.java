@@ -15,6 +15,14 @@ public final class MathUtils {
         return value;
     }
 
+    public static double clamp(double min, double value, double max) {
+        if (value < min)
+            return min;
+        if (value > max)
+            return max;
+        return value;
+    }
+
     public static float lerp(float a, float b, float t) {
         return a + (b - a) * t;
     }

@@ -59,12 +59,15 @@ public class Chunk implements Serializable {
 
     public short getBlockId(int x, int y, int z) {
         if (outOfBounds(x, y, z))
-            return Blocks.AIR;
+            return -1;
         return blocks[getBlockIndex(x, y, z)];
     }
 
     public BlockDefinition getBlock(int x, int y, int z) {
-        return BlockRegister.getBlock(getBlockId(x, y, z));
+        short id = getBlockId(x, y, z);
+        if (id == -1)
+            return null;
+        return BlockRegister.getBlock(id);
     }
 
     public void setBlock(short block, int x, int y, int z) {
@@ -111,5 +114,14 @@ public class Chunk implements Serializable {
 
     public static int getBlockIndexWithWorldCoords(int x, int y, int z) {
         return getBlockIndex(calculateIndexInChunk(x), y, calculateIndexInChunk(z));
+    }
+
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 17;
+        result = prime * result + xPos;
+        result = prime * result + zPos;
+        return result;
     }
 }

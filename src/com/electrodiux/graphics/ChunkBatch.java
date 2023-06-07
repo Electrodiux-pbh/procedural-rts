@@ -24,13 +24,13 @@ public class ChunkBatch {
         batches = new ArrayList<RenderBatch>();
     }
 
-    public void render() {
+    public void render(Texture texture) {
         for (RenderBatch batch : batches) {
-            batch.render(BlockRegister.blocksMetadata[Blocks.STONE].getTexture());
+            batch.render(texture);
         }
     }
 
-    public void recomputeMesh(Chunk chunk, World world) {
+    public void computeMesh(Chunk chunk, World world) {
         facesCount = 0;
 
         for (int x = 0; x < Chunk.CHUNK_SIZE; x++) {
@@ -63,7 +63,7 @@ public class ChunkBatch {
 
     private void addVisibleFaces(World world, Chunk chunk, int x, int y, int z, Texture texture) {
         transformMatrix.identity();
-        transformMatrix.translate(x, y, z);
+        transformMatrix.translate(x + chunk.getBlockX(), y, z + chunk.getBlockZ());
 
         if (isHideBlock(world, chunk, x, y + 1, z))
             addFace(getFace(FACE_TOP));
@@ -81,6 +81,10 @@ public class ChunkBatch {
 
     private boolean isHideBlock(World world, Chunk chunk, int x, int y, int z) {
         short block = chunk.getBlockId(x, y, z);
+        if (block == -1) {
+            // block = world.getBlock(x + chunk.getBlockX(), y, z + chunk.getBlockZ());ç
+            return true;
+        }
         return block == Blocks.AIR || BlockRegister.getBlock(block).isTransparent();
     }
 
@@ -137,9 +141,6 @@ public class ChunkBatch {
         if (numBatches < divisionResult) {
             numBatches++;
         }
-
-        System.out.println(divisionResult);
-        System.out.println(numBatches);
 
         int i = 0;
         while (iter.hasNext()) {
