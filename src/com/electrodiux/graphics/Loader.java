@@ -11,6 +11,7 @@ import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import org.joml.Vector2f;
 import org.joml.Vector3f;
@@ -111,7 +112,7 @@ public class Loader {
     }
 
     public static Model loadObjModel(String path) throws IOException {
-        return loadObjModel(Loader.class.getResourceAsStream(path));
+        return loadObjModel(getStreamFromPath(path));
     }
 
     public static Model loadObjModel(InputStream inputStream) throws IOException {
@@ -273,11 +274,13 @@ public class Loader {
 
     public static Texture loadTexture(InputStream in, int filter, boolean usesMipmap, float anisotropicExt)
             throws IOException {
+        Objects.requireNonNull(in, "The input stream is null");
         byte[] imageBytes = in.readAllBytes();
         return loadTexture(imageBytes, filter, usesMipmap, anisotropicExt);
     }
 
     public static Texture loadTexture(InputStream in, int filter, boolean usesMipmap) throws IOException {
+        Objects.requireNonNull(in, "The input stream is null");
         byte[] imageBytes = in.readAllBytes();
         return loadTexture(imageBytes, filter, usesMipmap, DEFAULT_ANISOTROPIC_EXT);
     }
@@ -291,15 +294,22 @@ public class Loader {
     }
 
     public static Texture loadTexture(String path, int filter, boolean usesMipmap) throws IOException {
-        return loadTexture(Loader.class.getResourceAsStream(path), filter, usesMipmap);
+        return loadTexture(getStreamFromPath(path), filter, usesMipmap);
     }
 
     public static Texture loadTexture(String path, int filter) throws IOException {
-        return loadTexture(Loader.class.getResourceAsStream(path), filter, true);
+        return loadTexture(getStreamFromPath(path), filter, true);
     }
 
     public static Texture loadTexture(String path) throws IOException {
-        return loadTexture(Loader.class.getResourceAsStream(path), GL11.GL_LINEAR, true);
+        return loadTexture(getStreamFromPath(path), GL11.GL_LINEAR, true);
+    }
+
+    private static InputStream getStreamFromPath(String path) throws IOException {
+        InputStream in = Loader.class.getResourceAsStream(path);
+        if (in == null)
+            throw new IOException("No resource at \"" + path + "\"");
+        return in;
     }
 
     public static ByteBuffer loadImage(byte[] imageBytes, IntBuffer width, IntBuffer height, IntBuffer channels)
@@ -323,7 +333,7 @@ public class Loader {
         IntBuffer h = BufferUtils.createIntBuffer(1);
         IntBuffer c = BufferUtils.createIntBuffer(1);
 
-        InputStream in = Loader.class.getResourceAsStream(path);
+        InputStream in = getStreamFromPath(path);
         byte[] imageBytes = in.readAllBytes();
 
         ByteBuffer buff = loadImage(imageBytes, w, h, c);

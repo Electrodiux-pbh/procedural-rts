@@ -2,8 +2,8 @@ package com.electrodiux.block;
 
 import java.awt.Color;
 
-import com.electrodiux.assets.Texture;
 import com.electrodiux.block.BlockRegister.BlockDefinitionRegister;
+import com.electrodiux.graphics.Texture;
 import com.electrodiux.register.Registrable;
 
 public class BlockDefinition implements Registrable {

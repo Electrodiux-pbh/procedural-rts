@@ -25,8 +25,10 @@ public class World {
         this.seed = seed;
         this.chunks = new ConcurrentHashMap<>();
         this.entities = new ConcurrentHashMap<>();
+    }
 
-        this.generator = new TerrainGenerator(this);
+    public void setGenerator(TerrainGenerator generator) {
+        this.generator = generator;
     }
 
     public void loadChunk(int x, int z) {

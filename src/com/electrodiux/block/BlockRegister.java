@@ -1,11 +1,14 @@
 package com.electrodiux.block;
 
 import java.awt.Color;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.electrodiux.assets.Loader;
-import com.electrodiux.assets.Texture;
+import org.lwjgl.opengl.GL11;
+
+import com.electrodiux.graphics.Loader;
+import com.electrodiux.graphics.Texture;
 
 public class BlockRegister {
 
@@ -13,13 +16,13 @@ public class BlockRegister {
 
     public static final BlockDefinition[] blocksMetadata = new BlockDefinition[30];
 
-    public static final BlockDefinition getBlockMetadata(int index) {
+    public static final BlockDefinition getBlock(int index) {
         if (index < 0 || index >= blocksMetadata.length)
             return null;
         return blocksMetadata[index];
     }
 
-    public BlockDefinition getBlockMetadata(String blockId) {
+    public static BlockDefinition getBlock(String blockId) {
         return blocks.get(blockId);
     }
 
@@ -51,7 +54,16 @@ public class BlockRegister {
         }
 
         public BlockDefinitionRegister setTexture(String texturePath) {
-            this.texture = Loader.loadTexture(texturePath);
+            setTexture(texturePath, GL11.GL_NEAREST);
+            return this;
+        }
+
+        public BlockDefinitionRegister setTexture(String texturePath, int filter) {
+            try {
+                this.texture = Loader.loadTexture("/assets/textures/blocks/" + texturePath, filter);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
             return this;
         }
 

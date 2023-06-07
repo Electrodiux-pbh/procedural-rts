@@ -10,26 +10,23 @@ public class Window {
     private long glfwWindow;
 
     private boolean fullScreen;
+    private boolean visible;
 
-    /**
-     * @param properties
-     * @throws java.lang.IllegalStateException
-     */
     public Window(int width, int height, String title) {
+        this(width, height, title, false, true);
+    }
+
+    public Window(int width, int height, String title, boolean fullScreen, boolean visible) {
         this.width = width;
         this.height = height;
 
-        fullScreen = true;
+        this.fullScreen = fullScreen;
         this.title = title;
+        this.visible = visible;
 
         init();
     }
 
-    /**
-     * Initialize all important things for the Window
-     * 
-     * @throws java.lang.IllegalStateException
-     */
     private void init() {
 
         if (!GLFW.glfwInit())
@@ -57,8 +54,22 @@ public class Window {
 
         // setIcon();
 
-        GLFW.glfwShowWindow(glfwWindow);
+        updateVisibility();
+    }
 
+    private void updateVisibility() {
+        if (visible) {
+            GLFW.glfwShowWindow(glfwWindow);
+        } else {
+            GLFW.glfwHideWindow(glfwWindow);
+        }
+    }
+
+    public void setVisibility(boolean visible) {
+        if (this.visible != visible) {
+            this.visible = visible;
+            updateVisibility();
+        }
     }
 
     public void destroy() {

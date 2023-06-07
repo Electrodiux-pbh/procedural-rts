@@ -2,6 +2,8 @@ package com.electrodiux.world;
 
 import java.io.Serializable;
 
+import com.electrodiux.block.BlockDefinition;
+import com.electrodiux.block.BlockRegister;
 import com.electrodiux.block.Blocks;
 
 public class Chunk implements Serializable {
@@ -55,10 +57,14 @@ public class Chunk implements Serializable {
         return zPos * CHUNK_SIZE;
     }
 
-    public short getBlock(int x, int y, int z) {
+    public short getBlockId(int x, int y, int z) {
         if (outOfBounds(x, y, z))
             return Blocks.AIR;
         return blocks[getBlockIndex(x, y, z)];
+    }
+
+    public BlockDefinition getBlock(int x, int y, int z) {
+        return BlockRegister.getBlock(getBlockId(x, y, z));
     }
 
     public void setBlock(short block, int x, int y, int z) {

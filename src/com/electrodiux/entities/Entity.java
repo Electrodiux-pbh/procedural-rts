@@ -1,10 +1,11 @@
 package com.electrodiux.entities;
 
+import java.io.IOException;
 import java.util.UUID;
 
 import com.electrodiux.Position;
-import com.electrodiux.assets.Loader;
-import com.electrodiux.assets.Texture;
+import com.electrodiux.graphics.Loader;
+import com.electrodiux.graphics.Texture;
 
 public class Entity {
 
@@ -39,9 +40,12 @@ public class Entity {
 
         private Texture texture;
 
-        public Properties texture(String texurePath) {
-            Texture texture = Loader.loadTexture(texurePath);
-            this.texture = texture;
+        public Properties texture(String texturePath) {
+            try {
+                this.texture = Loader.loadTexture("/assets/textures/" + texturePath);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
             return this;
         }
 

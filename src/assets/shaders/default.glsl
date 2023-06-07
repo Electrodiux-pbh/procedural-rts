@@ -6,14 +6,13 @@ layout(location=1)in vec2 aTextCoords;
 
 uniform mat4 uProjection;
 uniform mat4 uView;
-uniform mat4 transformMatrix;
 
 out vec2 fTextCoords;
 
 void main()
 {
 	fTextCoords=aTextCoords;
-	gl_Position=uProjection*uView*transformMatrix*vec4(aPos,1.);
+	gl_Position=uProjection*uView*vec4(aPos,1.);
 }
 
 #type fragment
@@ -27,5 +26,9 @@ out vec4 color;
 
 void main()
 {
-	color=texture(uSampler,fTextCoords);
+	vec4 textureColor = texture(uSampler,fTextCoords);
+	if(textureColor.a < 0.5) {
+		discard;
+	}
+	color = textureColor;
 }
