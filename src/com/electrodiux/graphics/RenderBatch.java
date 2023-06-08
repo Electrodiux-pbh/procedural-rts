@@ -3,6 +3,8 @@ package com.electrodiux.graphics;
 import org.lwjgl.opengl.GL13;
 import org.lwjgl.opengl.GL30;
 
+import com.electrodiux.graphics.textures.Texture;
+
 public class RenderBatch {
     private final int POS_SIZE = 3;
     private final int TEXTURE_SIZE = 2;
@@ -54,7 +56,7 @@ public class RenderBatch {
         GL30.glEnableVertexAttribArray(1);
     }
 
-    public void clearBatch() {
+    public void clearBufferData() {
         // Delete Vertex Array Object
         GL30.glBindVertexArray(vaoID);
         GL30.glDeleteVertexArrays(vaoID);
@@ -106,7 +108,7 @@ public class RenderBatch {
         GL30.glBindVertexArray(0);
     }
 
-    public void rebufferData() {
+    public void bufferData() {
         GL30.glBindBuffer(GL30.GL_ARRAY_BUFFER, vboID);
         GL30.glBufferSubData(GL30.GL_ARRAY_BUFFER, 0, vertices);
     }

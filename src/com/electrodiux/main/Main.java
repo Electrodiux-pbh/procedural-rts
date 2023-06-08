@@ -144,11 +144,12 @@ public class Main {
 
         World world = new World(seed);
         world.setGenerator(new WorldGenerator(world));
+        System.out.println("Start generating:");
         long startGenerating = System.currentTimeMillis();
-        world.generate();
+        world.generate(16);
         System.out.println("Time to generate: " + (System.currentTimeMillis() - startGenerating) + "ms");
 
-        entity = new Entity(UUID.randomUUID(), new Properties().texture("entity2.png"));
+        entity = new Entity(UUID.randomUUID(), new Properties().texture("entity.png"));
         entity.getPosition()
                 .setY(world.getHighestYAt(entity.getPosition().getBlockX(), entity.getPosition().getBlockZ()) + 1);
 

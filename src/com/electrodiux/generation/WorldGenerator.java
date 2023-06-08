@@ -6,7 +6,6 @@ import static com.electrodiux.world.Chunk.CHUNK_SIZE_BITMASK;
 
 import com.electrodiux.block.Blocks;
 import com.electrodiux.register.Register;
-import com.electrodiux.util.NoiseGenerator;
 import com.electrodiux.world.Chunk;
 import com.electrodiux.world.Chunk.ChunkStatus;
 import com.electrodiux.world.World;

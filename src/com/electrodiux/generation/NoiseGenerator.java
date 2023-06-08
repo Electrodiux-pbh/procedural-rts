@@ -1,4 +1,4 @@
-package com.electrodiux.util;
+package com.electrodiux.generation;
 
 import java.util.Random;
 

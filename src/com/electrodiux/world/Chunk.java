@@ -59,7 +59,7 @@ public class Chunk implements Serializable {
 
     public short getBlockId(int x, int y, int z) {
         if (outOfBounds(x, y, z))
-            return -1;
+            return Blocks.NULL;
         return blocks[getBlockIndex(x, y, z)];
     }
 
@@ -83,6 +83,14 @@ public class Chunk implements Serializable {
             }
         }
         return 0;
+    }
+
+    public int getWorldXFromLocal(int localX) {
+        return getWorldCoord(localX, xPos);
+    }
+
+    public int getWorldZFromLocal(int localZ) {
+        return getWorldCoord(localZ, zPos);
     }
 
     public ChunkStatus getChunkStatus() {
@@ -114,6 +122,13 @@ public class Chunk implements Serializable {
 
     public static int getBlockIndexWithWorldCoords(int x, int y, int z) {
         return getBlockIndex(calculateIndexInChunk(x), y, calculateIndexInChunk(z));
+    }
+
+    public static int getWorldCoord(int local, int chunk) {
+        if (chunk < 0) {
+            return ((-chunk + 1) * CHUNK_SIZE) + local;
+        }
+        return chunk * CHUNK_SIZE + local;
     }
 
     @Override

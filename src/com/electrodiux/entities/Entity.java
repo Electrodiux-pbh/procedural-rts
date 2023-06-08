@@ -5,7 +5,7 @@ import java.util.UUID;
 
 import com.electrodiux.Position;
 import com.electrodiux.graphics.Loader;
-import com.electrodiux.graphics.Texture;
+import com.electrodiux.graphics.textures.Texture;
 
 public class Entity {
 

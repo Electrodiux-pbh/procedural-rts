@@ -1,13 +1,20 @@
-package com.electrodiux.graphics;
+package com.electrodiux.graphics.textures;
 
 import org.lwjgl.opengl.GL11;
 
 public class Texture {
 
-	private int textureId;
+	protected int textureId;
+	private int width, height;
 
-	Texture(int textureId) {
+	public Texture(int textureId) {
 		this.textureId = textureId;
+	}
+
+	public Texture(int textureId, int width, int height) {
+		this.textureId = textureId;
+		this.width = width;
+		this.height = height;
 	}
 
 	public void bind() {
@@ -20,6 +27,14 @@ public class Texture {
 
 	public int getTextureId() {
 		return textureId;
+	}
+
+	public int getWidth() {
+		return width;
+	}
+
+	public int getHeight() {
+		return height;
 	}
 
 	@Override

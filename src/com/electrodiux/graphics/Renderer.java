@@ -9,11 +9,11 @@ import org.lwjgl.glfw.GLFW;
 import org.lwjgl.opengl.GL11;
 
 import com.electrodiux.block.BlockRegister;
-import com.electrodiux.block.Blocks;
 import com.electrodiux.input.Keyboard;
 import com.electrodiux.input.Mouse;
 import com.electrodiux.math.MathUtils;
 import com.electrodiux.math.Vector3;
+import com.electrodiux.util.Timer;
 import com.electrodiux.world.Chunk;
 import com.electrodiux.world.World;
 
@@ -28,7 +28,7 @@ public class Renderer {
     private Map<Chunk, ChunkBatch> chunkBatches;
     private World world;
 
-    private final int renderDistance = 8;
+    private final int renderDistance = 12;
 
     public Renderer(Window window) {
         this.window = window;
@@ -50,7 +50,24 @@ public class Renderer {
             e.printStackTrace();
         }
 
-        recalculateChunks();
+        Timer chunkTimer = new Timer(0.25F);
+        chunkTimer.addHandler(() -> {
+            int xStart = (int) (camera.position().x() / Chunk.CHUNK_SIZE) - renderDistance;
+            int zStart = (int) (camera.position().z() / Chunk.CHUNK_SIZE) - renderDistance;
+
+            int xEnd = xStart + renderDistance * 2 + 1;
+            int zEnd = zStart + renderDistance * 2 + 1;
+
+            for (int x = xStart; x < xEnd; x++) {
+                for (int z = zStart; z < zEnd; z++) {
+                    Chunk chunk = world.getChunk(x, z);
+                    if (chunk == null) {
+                        world.loadChunk(x, z);
+                    }
+                }
+            }
+        });
+        chunkTimer.start();
     }
 
     public void run() {
@@ -87,7 +104,7 @@ public class Renderer {
     private void render() {
         GL11.glEnable(GL11.GL_DEPTH_TEST);
         GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
-        // enableCulling(GL11.GL_FRONT);
+        enableCulling(GL11.GL_BACK);
 
         camera.clearColor();
         camera.setProjectionsToShader(shader);
@@ -99,8 +116,9 @@ public class Renderer {
 
     private void renderWorld(World world) {
         shader.use();
+        computeNextChunksMeshes();
         for (Entry<Chunk, ChunkBatch> entry : chunkBatches.entrySet()) {
-            entry.getValue().render(BlockRegister.blocksMetadata[Blocks.STONE].getTexture());
+            entry.getValue().render(BlockRegister.getTextureAtlas());
         }
         shader.detach();
     }
@@ -108,7 +126,7 @@ public class Renderer {
     private void update(float deltaTime) {
         position.add(getMoveVector(deltaTime));
         rotation.add(getRotationVector(deltaTime));
-        rotation.x = MathUtils.clamp((float) -Math.PI, rotation.x, (float) Math.PI);
+        rotation.x = MathUtils.clamp((float) -Math.PI / 2, rotation.x, (float) Math.PI / 2);
 
         camera.position().set(position);
         camera.rotation().set(rotation);
@@ -137,13 +155,45 @@ public class Renderer {
         if (Keyboard.isKeyPressed(Keyboard.GLFW_KEY_LEFT_SHIFT))
             move.add(0, -2, 0);
 
-        return move.normalize().mul(deltaTime * (Keyboard.isKeyPressed(Keyboard.GLFW_KEY_LEFT_CONTROL) ? 15 : 6));
+        return move.normalize().mul(deltaTime * (Keyboard.isKeyPressed(Keyboard.GLFW_KEY_LEFT_CONTROL) ? 35 : 20));
     }
 
     private Vector3 getRotationVector(float deltaTime) {
         final float value = 5 * deltaTime;
         return new Vector3((float) Math.toRadians(-Mouse.getDY()) * value,
                 (float) Math.toRadians(-Mouse.getDX()) * value, 0);
+    }
+
+    private void computeNextChunksMeshes() {
+        int xStart = (int) (camera.position().x() / Chunk.CHUNK_SIZE) - renderDistance;
+        int zStart = (int) (camera.position().z() / Chunk.CHUNK_SIZE) - renderDistance;
+
+        int xEnd = xStart + renderDistance * 2 + 1;
+        int zEnd = zStart + renderDistance * 2 + 1;
+
+        for (Chunk chunk : world.getChunks()) {
+            ChunkBatch batch = chunkBatches.get(chunk);
+
+            if (chunk.getXPos() >= xStart && chunk.getXPos() <= xEnd && chunk.getZPos() >= zStart
+                    && chunk.getZPos() <= zEnd) {
+
+                if (batch == null) {
+                    batch = new ChunkBatch();
+                    chunkBatches.put(chunk, batch);
+                    batch.computeMesh(chunk, world);
+                    batch.bufferData();
+                }
+
+            } else if (!(chunk.getXPos() >= xStart - 1 && chunk.getXPos() <= xEnd + 1 && chunk.getZPos() >= zStart - 1
+                    && chunk.getZPos() <= zEnd + 1)) {
+
+                if (batch != null) {
+                    batch.clearBufferData();
+                    chunkBatches.remove(chunk);
+                }
+
+            }
+        }
     }
 
     private void recalculateChunks() {
@@ -158,6 +208,7 @@ public class Renderer {
                 Chunk chunk = world.getChunk(x, z);
                 if (chunk == null) {
                     world.loadChunk(x, z);
+                    continue;
                 }
 
                 ChunkBatch batch = chunkBatches.get(chunk);
@@ -165,17 +216,9 @@ public class Renderer {
                     batch = new ChunkBatch();
                     chunkBatches.put(chunk, batch);
                 }
-
                 batch.computeMesh(chunk, world);
+                batch.bufferData();
             }
-        }
-
-        rebufferBatches();
-    }
-
-    private void rebufferBatches() {
-        for (Entry<Chunk, ChunkBatch> entry : chunkBatches.entrySet()) {
-            entry.getValue().rebufferBatches();
         }
     }
 
@@ -220,9 +263,9 @@ public class Renderer {
         GL11.glCullFace(mode);
     }
 
-    private void disableCulling() {
-        GL11.glDisable(GL11.GL_CULL_FACE);
-    }
+    // private void disableCulling() {
+    // GL11.glDisable(GL11.GL_CULL_FACE);
+    // }
 
     public void setWorld(World world) {
         this.world = world;

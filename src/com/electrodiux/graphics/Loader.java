@@ -27,6 +27,8 @@ import org.lwjgl.opengl.GL20;
 import org.lwjgl.opengl.GL30;
 import org.lwjgl.stb.STBImage;
 
+import com.electrodiux.graphics.textures.Texture;
+
 public class Loader {
 
     private static List<Integer> attributeLists = new ArrayList<Integer>();
@@ -238,12 +240,14 @@ public class Loader {
         imageBuffer.put(imageBytes).flip();
 
         ByteBuffer image = STBImage.stbi_load_from_memory(imageBuffer, width, height, channels, 0);
+        int imgWidth = width.get();
+        int imgHeight = height.get();
 
         if (image != null) {
             int type = channels.get(0) == 3 ? GL11.GL_RGB : channels.get(0) == 4 ? GL11.GL_RGBA : -1;
             if (type == -1)
                 throw new IOException("Unknown number of channels '" + channels.get(0) + "'");
-            GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, type, width.get(), height.get(), 0, type, GL11.GL_UNSIGNED_BYTE,
+            GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, type, imgWidth, imgHeight, 0, type, GL11.GL_UNSIGNED_BYTE,
                     image);
 
             if (usesMipmap) {
@@ -269,7 +273,7 @@ public class Loader {
 
         textures.add(textureId);
 
-        return new Texture(textureId);
+        return new Texture(textureId, imgWidth, imgHeight);
     }
 
     public static Texture loadTexture(InputStream in, int filter, boolean usesMipmap, float anisotropicExt)

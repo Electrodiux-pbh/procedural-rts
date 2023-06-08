@@ -8,7 +8,8 @@ import java.util.Map;
 import org.lwjgl.opengl.GL11;
 
 import com.electrodiux.graphics.Loader;
-import com.electrodiux.graphics.Texture;
+import com.electrodiux.graphics.textures.Sprite;
+import com.electrodiux.graphics.textures.Texture;
 
 public class BlockRegister {
 
@@ -33,12 +34,25 @@ public class BlockRegister {
         return new BlockDefinitionRegister(blockId, index);
     }
 
+    private static Texture atlasTexture;
+
+    public static Texture getTextureAtlas() {
+        if (atlasTexture == null) {
+            try {
+                atlasTexture = Loader.loadTexture("/assets/textures/blocks/atlas.png", GL11.GL_NEAREST);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        return atlasTexture;
+    }
+
     public static class BlockDefinitionRegister {
         String blockName;
         String blockId;
 
         Color mapColor;
-        Texture texture;
+        Sprite texture;
         boolean transparent;
 
         private short index;
@@ -59,11 +73,17 @@ public class BlockRegister {
         }
 
         public BlockDefinitionRegister setTexture(String texturePath, int filter) {
-            try {
-                this.texture = Loader.loadTexture("/assets/textures/blocks/" + texturePath, filter);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            // try {
+            // this.texture = Loader.loadTexture("/assets/textures/blocks/" + texturePath,
+            // filter);
+            // } catch (IOException e) {
+            // e.printStackTrace();
+            // }
+            return this;
+        }
+
+        public BlockDefinitionRegister setTexture(Sprite texture) {
+            this.texture = texture;
             return this;
         }
 

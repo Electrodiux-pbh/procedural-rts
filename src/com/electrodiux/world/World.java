@@ -7,6 +7,9 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import com.electrodiux.block.Blocks;
 import com.electrodiux.entities.Entity;
@@ -45,21 +48,28 @@ public class World {
         chunks.remove(getChunkIndexSearch(x, z));
     }
 
-    public void generate() {
-        System.out.println("Start generating:");
-        final int size = 8;
+    public void generate(int radius) {
+        CountDownLatch latch = new CountDownLatch((radius * 2 + 1) * (radius * 2 + 1));
+        ExecutorService chunkExecutor = Executors.newFixedThreadPool(10);
 
-        final int totalChunks = (size * 2 + 1) * (size * 2 + 1);
+        for (int x = -radius; x <= radius; x++) {
+            for (int z = -radius; z <= radius; z++) {
+                final int xPos = x;
+                final int zPos = z;
 
-        int chunksCount = 0;
-        for (int x = -size; x <= size; x++) {
-            for (int z = -size; z <= size; z++) {
-                Chunk chunk = generator.generateChunk(x, z);
-                chunks.put(getChunkIndex(x, z), chunk);
-                chunksCount++;
-
-                System.out.println("Generated: " + (chunksCount * 100 / totalChunks) + "%");
+                chunkExecutor.submit(() -> {
+                    Chunk chunk = generator.generateChunk(xPos, zPos);
+                    chunks.put(getChunkIndex(xPos, zPos), chunk);
+                    latch.countDown();
+                });
             }
+        }
+
+        try {
+            latch.await();
+            chunkExecutor.shutdown();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
     }
 
@@ -126,7 +136,11 @@ public class World {
         int chunkX = x / CHUNK_SIZE;
         int chunkZ = z / CHUNK_SIZE;
 
-        short[] blocks = getChunk(chunkX, chunkZ).getBlocks();
+        Chunk chunk = getChunk(chunkX, chunkZ);
+        if (chunk == null)
+            return Blocks.NULL;
+
+        short[] blocks = chunk.getBlocks();
         for (int y = CHUNK_HEIGHT - 1; y >= 0; y--) {
             if (blocks[Chunk.getBlockIndexWithWorldCoords(x, y, z)] != Blocks.AIR) {
                 return y;

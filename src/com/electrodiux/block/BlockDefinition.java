@@ -3,7 +3,7 @@ package com.electrodiux.block;
 import java.awt.Color;
 
 import com.electrodiux.block.BlockRegister.BlockDefinitionRegister;
-import com.electrodiux.graphics.Texture;
+import com.electrodiux.graphics.textures.Sprite;
 import com.electrodiux.register.Registrable;
 
 public class BlockDefinition implements Registrable {
@@ -12,7 +12,7 @@ public class BlockDefinition implements Registrable {
     private final String blockName;
 
     private final Color mapColor;
-    private final Texture texture;
+    private final Sprite texture;
     private final boolean transparent;
 
     BlockDefinition(BlockDefinitionRegister builder) {
@@ -36,7 +36,7 @@ public class BlockDefinition implements Registrable {
         return mapColor;
     }
 
-    public Texture getTexture() {
+    public Sprite getTexture() {
         return texture;
     }
 

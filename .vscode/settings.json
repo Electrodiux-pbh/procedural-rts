@@ -1,5 +1,5 @@
 {
-  "java.completion.filteredTypes": ["com.sun.*", "sun.*", "jdk.*", "org.graalvm.*", "io.micrometer.shaded.*"],
+  "java.completion.filteredTypes": ["com.sun.*", "sun.*", "jdk.*", "org.graalvm.*", "io.micrometer.shaded.*", "java.awt.*"],
   "java.project.exportJar.targetPath": "./build/",
   "java.project.sourcePaths": ["src"],
   "java.project.referencedLibraries": [
