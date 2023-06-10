@@ -2,18 +2,24 @@ package com.electrodiux.block;
 
 import java.awt.Color;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import org.lwjgl.opengl.GL11;
 
 import com.electrodiux.graphics.Loader;
 import com.electrodiux.graphics.textures.Sprite;
 import com.electrodiux.graphics.textures.Texture;
+import com.electrodiux.graphics.textures.TextureAtlas;
 
 public class BlockRegister {
 
     private static final Map<String, BlockDefinition> blocks = new HashMap<>();
+    private static List<BlockDefinitionRegister> blockRegisters = new ArrayList<>();
 
     public static final BlockDefinition[] blocksMetadata = new BlockDefinition[30];
 
@@ -34,17 +40,36 @@ public class BlockRegister {
         return new BlockDefinitionRegister(blockId, index);
     }
 
+    private static TextureAtlas textureAtlas = new TextureAtlas(16, 16);
     private static Texture atlasTexture;
 
-    public static Texture getTextureAtlas() {
-        if (atlasTexture == null) {
-            try {
-                atlasTexture = Loader.loadTexture("/assets/textures/blocks/atlas.png", GL11.GL_NEAREST);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
+    public static Texture getAtlasTexture() {
         return atlasTexture;
+    }
+
+    public static void endRegistry() {
+        atlasTexture = textureAtlas.createAtlasTexture(GL11.GL_NEAREST, true, Loader.DEFAULT_ANISOTROPIC_EXT);
+        List<Sprite> sprites = textureAtlas.getTextureSprites(atlasTexture);
+
+        for (BlockDefinitionRegister register : blockRegisters) {
+            register.textures = new Sprite[register.textureAtlasIndices.length];
+            for (int i = 0; i < register.textureAtlasIndices.length; i++) {
+                register.textures[i] = sprites.get(register.textureAtlasIndices[i]);
+            }
+
+            BlockDefinition block = new BlockDefinition(register);
+
+            if (blocks.containsKey(register.blockId)) {
+                throw new IllegalStateException("The block with id " + register.blockId + " already exists");
+            }
+            blocks.put(register.blockId, block);
+
+            blocksMetadata[register.index] = block;
+
+            System.out.println("Registered block: \"" + register.blockId + "\" with index of " + register.index);
+        }
+
+        textureAtlas = null;
     }
 
     public static class BlockDefinitionRegister {
@@ -52,14 +77,18 @@ public class BlockRegister {
         String blockId;
 
         Color mapColor;
-        Sprite texture;
         boolean transparent;
+
+        Sprite[] textures;
+        private int[] textureAtlasIndices;
 
         private short index;
 
         protected BlockDefinitionRegister(String blockId, short index) {
             this.blockId = blockId;
             this.index = index;
+            this.textureAtlasIndices = new int[6];
+            Arrays.fill(textureAtlasIndices, -1);
         }
 
         public BlockDefinitionRegister setColor(Color c) {
@@ -68,22 +97,32 @@ public class BlockRegister {
         }
 
         public BlockDefinitionRegister setTexture(String texturePath) {
-            setTexture(texturePath, GL11.GL_NEAREST);
+            try {
+                int textureIndex = textureAtlas.loadTexture("/assets/textures/blocks/" + texturePath);
+
+                for (int i = 0; i < textureAtlasIndices.length; i++) {
+                    if (textureAtlasIndices[i] == -1)
+                        textureAtlasIndices[i] = textureIndex;
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
             return this;
         }
 
-        public BlockDefinitionRegister setTexture(String texturePath, int filter) {
-            // try {
-            // this.texture = Loader.loadTexture("/assets/textures/blocks/" + texturePath,
-            // filter);
-            // } catch (IOException e) {
-            // e.printStackTrace();
-            // }
-            return this;
-        }
+        public BlockDefinitionRegister setTexture(String texturePath, int... indicies) {
+            try {
+                int textureIndex = textureAtlas.loadTexture("/assets/textures/blocks/" + texturePath);
 
-        public BlockDefinitionRegister setTexture(Sprite texture) {
-            this.texture = texture;
+                for (int idx : indicies) {
+                    Objects.checkIndex(idx, textureAtlasIndices.length);
+                    textureAtlasIndices[idx] = textureIndex;
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
             return this;
         }
 
@@ -97,23 +136,12 @@ public class BlockRegister {
             return this;
         }
 
-        public BlockDefinition build() {
+        public void register() {
             if (blockName == null) {
                 blockName = blockId;
             }
 
-            BlockDefinition block = new BlockDefinition(this);
-
-            if (blocks.containsKey(blockId)) {
-                throw new IllegalStateException("The block with id " + blockId + " already exists");
-            }
-            blocks.put(blockId, block);
-
-            blocksMetadata[index] = block;
-
-            System.out.println("Registered block: \"" + blockId + "\" with index of " + index);
-
-            return block;
+            blockRegisters.add(this);
         }
     }
 

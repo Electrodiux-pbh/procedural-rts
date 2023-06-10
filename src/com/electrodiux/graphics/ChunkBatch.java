@@ -7,6 +7,7 @@ import java.util.List;
 import org.joml.Matrix4f;
 import org.joml.Vector4f;
 
+import com.electrodiux.block.BlockDefinition;
 import com.electrodiux.block.BlockRegister;
 import com.electrodiux.block.Blocks;
 import com.electrodiux.graphics.RenderBatch.Face;
@@ -46,13 +47,7 @@ public class ChunkBatch {
                         continue;
                     }
 
-                    Sprite texture = BlockRegister.blocksMetadata[blocks[index]].getTexture();
-
-                    if (texture == null) {
-                        continue;
-                    }
-
-                    addVisibleFaces(world, chunk, x, y, z, texture);
+                    addVisibleFaces(world, chunk, x, y, z, BlockRegister.blocksMetadata[blocks[index]]);
                 }
             }
         }
@@ -61,22 +56,22 @@ public class ChunkBatch {
     private Matrix4f transformMatrix = new Matrix4f();
     private Face face = new Face(null, null);
 
-    private void addVisibleFaces(World world, Chunk chunk, int x, int y, int z, Sprite texture) {
+    private void addVisibleFaces(World world, Chunk chunk, int x, int y, int z, BlockDefinition block) {
         transformMatrix.identity();
         transformMatrix.translate(x + chunk.getBlockX(), y, z + chunk.getBlockZ());
 
         if (isHideBlock(world, chunk, x, y + 1, z))
-            addFace(getFace(FACE_TOP, texture));
+            addFace(getFace(Blocks.FACE_TOP, block));
         if (isHideBlock(world, chunk, x, y - 1, z))
-            addFace(getFace(FACE_BOTTOM, texture));
+            addFace(getFace(Blocks.FACE_BOTTOM, block));
         if (isHideBlock(world, chunk, x, y, z + 1))
-            addFace(getFace(FACE_FRONT, texture));
+            addFace(getFace(Blocks.FACE_FRONT, block));
         if (isHideBlock(world, chunk, x, y, z - 1))
-            addFace(getFace(FACE_BACK, texture));
+            addFace(getFace(Blocks.FACE_BACK, block));
         if (isHideBlock(world, chunk, x + 1, y, z))
-            addFace(getFace(FACE_RIGHT, texture));
+            addFace(getFace(Blocks.FACE_RIGHT, block));
         if (isHideBlock(world, chunk, x - 1, y, z))
-            addFace(getFace(FACE_LEFT, texture));
+            addFace(getFace(Blocks.FACE_LEFT, block));
     }
 
     private boolean isHideBlock(World world, Chunk chunk, int x, int y, int z) {
@@ -89,6 +84,10 @@ public class ChunkBatch {
     }
 
     private void addFace(Face face) {
+        if (face == null) {
+            return;
+        }
+
         boolean added = false;
         for (RenderBatch batch : batches) {
             if (batch.hasRoom()) {
@@ -106,9 +105,13 @@ public class ChunkBatch {
         facesCount++;
     }
 
-    private Face getFace(int dataIndex, Sprite texture) {
+    private Face getFace(int faceIdx, BlockDefinition block) {
         float[] vertices = new float[12];
-        System.arraycopy(cubeVertices, dataIndex * 12, vertices, 0, 12);
+        System.arraycopy(cubeVertices, faceIdx * 12, vertices, 0, 12);
+
+        Sprite texture = block.getTexture(faceIdx);
+        if (texture == null)
+            return null;
 
         float[] texCoords = texture.getTexCoords();
 
@@ -164,13 +167,6 @@ public class ChunkBatch {
 
     // #region Block Faces
 
-    private static final int FACE_TOP = 4;
-    private static final int FACE_BOTTOM = 5;
-    private static final int FACE_RIGHT = 3;
-    private static final int FACE_LEFT = 2;
-    private static final int FACE_FRONT = 0;
-    private static final int FACE_BACK = 1;
-
     private static final float[] cubeVertices = {
             // Front face
             0.5f, -0.5f, 0.5f, // Bottom-right
@@ -208,44 +204,6 @@ public class ChunkBatch {
             -0.5f, -0.5f, 0.5f, // Front-left
             0.5f, -0.5f, 0.5f, // Front-right
     };
-
-    // private static final float[] cubeTexCoords = {
-    // // Front face
-    // 0.0f, 0.0f, // Bottom-left
-    // 1.0f, 0.0f, // Bottom-right
-    // 1.0f, 1.0f, // Top-right
-    // 0.0f, 1.0f, // Top-left
-
-    // // Back face
-    // 1.0f, 0.0f, // Bottom-left
-    // 0.0f, 0.0f, // Bottom-right
-    // 0.0f, 1.0f, // Top-right
-    // 1.0f, 1.0f, // Top-left
-
-    // // Left face
-    // 0.0f, 0.0f, // Bottom-front
-    // 1.0f, 0.0f, // Bottom-back
-    // 1.0f, 1.0f, // Top-back
-    // 0.0f, 1.0f, // Top-front
-
-    // // Right face
-    // 1.0f, 0.0f, // Bottom-front
-    // 0.0f, 0.0f, // Bottom-back
-    // 0.0f, 1.0f, // Top-back
-    // 1.0f, 1.0f, // Top-front
-
-    // // Top face
-    // 0.0f, 1.0f, // Front-left
-    // 1.0f, 1.0f, // Front-right
-    // 1.0f, 0.0f, // Back-right
-    // 0.0f, 0.0f, // Back-left
-
-    // // Bottom face
-    // 0.0f, 0.0f, // Front-left
-    // 1.0f, 0.0f, // Front-right
-    // 1.0f, 1.0f, // Back-right
-    // 0.0f, 1.0f // Back-left
-    // };
 
     // #endregion
 

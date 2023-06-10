@@ -1,6 +1,7 @@
 package com.electrodiux.block;
 
 import java.awt.Color;
+import java.util.Objects;
 
 import com.electrodiux.block.BlockRegister.BlockDefinitionRegister;
 import com.electrodiux.graphics.textures.Sprite;
@@ -12,16 +13,17 @@ public class BlockDefinition implements Registrable {
     private final String blockName;
 
     private final Color mapColor;
-    private final Sprite texture;
     private final boolean transparent;
+
+    private final Sprite[] textures;
 
     BlockDefinition(BlockDefinitionRegister builder) {
         this.blockName = builder.blockName;
         this.blockId = builder.blockId;
 
         this.mapColor = builder.mapColor;
-        this.texture = builder.texture;
         this.transparent = builder.transparent;
+        this.textures = builder.textures;
     }
 
     public String getBlockId() {
@@ -36,8 +38,9 @@ public class BlockDefinition implements Registrable {
         return mapColor;
     }
 
-    public Sprite getTexture() {
-        return texture;
+    public Sprite getTexture(int face) {
+        Objects.checkIndex(face, textures.length);
+        return textures[face];
     }
 
     public boolean isTransparent() {

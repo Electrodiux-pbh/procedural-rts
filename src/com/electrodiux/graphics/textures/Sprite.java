@@ -1,11 +1,11 @@
 package com.electrodiux.graphics.textures;
 
-public class Sprite extends Texture {
+public class Sprite {
 
     private float[] texCoords;
 
-    public Sprite(int textureId) {
-        this(textureId, new float[] {
+    public Sprite() {
+        this(new float[] {
                 0.0f, 0.0f,
                 1.0f, 0.0f,
                 1.0f, 1.0f,
@@ -13,12 +13,7 @@ public class Sprite extends Texture {
         });
     }
 
-    public Sprite(Texture texture, float[] texCoords) {
-        this(texture.textureId, texCoords);
-    }
-
-    public Sprite(int textureId, float[] texCoords) {
-        super(textureId);
+    public Sprite(float[] texCoords) {
         this.texCoords = texCoords;
     }
 

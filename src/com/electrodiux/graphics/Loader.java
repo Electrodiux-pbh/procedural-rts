@@ -27,6 +27,7 @@ import org.lwjgl.opengl.GL20;
 import org.lwjgl.opengl.GL30;
 import org.lwjgl.stb.STBImage;
 
+import com.electrodiux.graphics.textures.BufferedImage;
 import com.electrodiux.graphics.textures.Texture;
 
 public class Loader {
@@ -220,60 +221,76 @@ public class Loader {
 
     public static final float DEFAULT_ANISOTROPIC_EXT = 4.0f;
 
-    public static Texture loadTexture(byte[] imageBytes, int filter, boolean usesMipmap, float anisotropicExt)
-            throws IOException {
+    public static Texture loadTexture(ByteBuffer image, int imgWidth, int imgHeight, int channels, int filter,
+            boolean usesMipmap, float anisotropicExt) {
         int textureId = GL11.glGenTextures();
 
         GL11.glBindTexture(GL11.GL_TEXTURE_2D, textureId);
 
-        GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_S, GL11.GL_REPEAT);
-        GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, GL11.GL_REPEAT);
+        GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_S, GL30.GL_CLAMP_TO_BORDER);
+        GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, GL30.GL_CLAMP_TO_BORDER);
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, filter);
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, filter);
 
+        int type = channels == 3 ? GL11.GL_RGB : channels == 4 ? GL11.GL_RGBA : -1;
+        if (type == -1)
+            throw new IllegalArgumentException("Unknown number of channels '" + channels + "'");
+        GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, type, imgWidth, imgHeight, 0, type, GL11.GL_UNSIGNED_BYTE,
+                image);
+
+        if (usesMipmap) {
+            GL30.glGenerateMipmap(GL11.GL_TEXTURE_2D);
+            GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_LINEAR_MIPMAP_LINEAR);
+            GL11.glTexParameterf(GL11.GL_TEXTURE_2D, GL14.GL_TEXTURE_LOD_BIAS, 0f);
+
+            if (GL.getCapabilities().GL_EXT_texture_filter_anisotropic) {
+                anisotropicExt = Math.min(anisotropicExt,
+                        GL11.glGetFloat(EXTTextureFilterAnisotropic.GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT));
+
+                GL11.glTexParameterf(GL11.GL_TEXTURE_2D, EXTTextureFilterAnisotropic.GL_TEXTURE_MAX_ANISOTROPY_EXT,
+                        anisotropicExt);
+            }
+        }
+
+        GL11.glBindTexture(GL11.GL_TEXTURE_2D, 0);
+
+        textures.add(textureId);
+
+        return new Texture(textureId, imgWidth, imgHeight);
+    }
+
+    public static Texture loadTexture(byte[] imageBytes, int filter, boolean usesMipmap, float anisotropicExt)
+            throws IOException {
         IntBuffer width = BufferUtils.createIntBuffer(1);
         IntBuffer height = BufferUtils.createIntBuffer(1);
         IntBuffer channels = BufferUtils.createIntBuffer(1);
-        STBImage.nstbi_set_flip_vertically_on_load(GLFW.GLFW_TRUE);
 
         ByteBuffer imageBuffer = BufferUtils.createByteBuffer(imageBytes.length);
         imageBuffer.put(imageBytes).flip();
 
+        STBImage.stbi_set_flip_vertically_on_load(true);
         ByteBuffer image = STBImage.stbi_load_from_memory(imageBuffer, width, height, channels, 0);
-        int imgWidth = width.get();
-        int imgHeight = height.get();
 
+        Texture texture = null;
         if (image != null) {
-            int type = channels.get(0) == 3 ? GL11.GL_RGB : channels.get(0) == 4 ? GL11.GL_RGBA : -1;
-            if (type == -1)
-                throw new IOException("Unknown number of channels '" + channels.get(0) + "'");
-            GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, type, imgWidth, imgHeight, 0, type, GL11.GL_UNSIGNED_BYTE,
-                    image);
-
-            if (usesMipmap) {
-                GL30.glGenerateMipmap(GL11.GL_TEXTURE_2D);
-                GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_LINEAR_MIPMAP_LINEAR);
-                GL11.glTexParameterf(GL11.GL_TEXTURE_2D, GL14.GL_TEXTURE_LOD_BIAS, 0f);
-
-                if (GL.getCapabilities().GL_EXT_texture_filter_anisotropic) {
-                    anisotropicExt = Math.min(anisotropicExt,
-                            GL11.glGetFloat(EXTTextureFilterAnisotropic.GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT));
-
-                    GL11.glTexParameterf(GL11.GL_TEXTURE_2D, EXTTextureFilterAnisotropic.GL_TEXTURE_MAX_ANISOTROPY_EXT,
-                            anisotropicExt);
-                }
+            try {
+                texture = loadTexture(image, width.get(0), height.get(0), channels.get(0), filter, usesMipmap,
+                        anisotropicExt);
+            } catch (Exception e) {
+                throw new IOException("An error occurred while loading texture to OpenGL", e);
             }
         } else {
             throw new IOException("Could not load the texture image");
         }
 
-        GL11.glBindTexture(GL11.GL_TEXTURE_2D, 0);
-
         STBImage.stbi_image_free(image);
 
-        textures.add(textureId);
+        return texture;
+    }
 
-        return new Texture(textureId, imgWidth, imgHeight);
+    public static Texture loadTexture(BufferedImage image, int filter, boolean usesMipmap, float anisotropicExt) {
+        return loadTexture(image.getData(), image.getWidth(), image.getHeight(), image.getNumChannels(), filter,
+                usesMipmap, anisotropicExt);
     }
 
     public static Texture loadTexture(InputStream in, int filter, boolean usesMipmap, float anisotropicExt)

@@ -2,7 +2,6 @@ package com.electrodiux.generation;
 
 import static com.electrodiux.world.Chunk.CHUNK_HEIGHT;
 import static com.electrodiux.world.Chunk.CHUNK_SIZE;
-import static com.electrodiux.world.Chunk.CHUNK_SIZE_BITMASK;
 
 import com.electrodiux.block.Blocks;
 import com.electrodiux.register.Register;
@@ -38,6 +37,7 @@ public class WorldGenerator extends TerrainGenerator {
         Chunk chunk = new Chunk(xPos, zPos);
 
         heightMaps(chunk);
+        chunk.setChunkStatus(ChunkStatus.HEIGHTMAPS);
         sea(chunk);
         carvers(chunk);
         blocks(chunk);
@@ -49,6 +49,8 @@ public class WorldGenerator extends TerrainGenerator {
 
         fill(chunk, 0, 0, 0, CHUNK_SIZE, 0, CHUNK_SIZE, Blocks.STONE);
 
+        chunk.setChunkStatus(ChunkStatus.COMPLETE);
+
         return chunk;
     }
 
@@ -58,28 +60,96 @@ public class WorldGenerator extends TerrainGenerator {
     }
 
     private void heightMaps(Chunk chunk) {
-        chunk.setChunkStatus(ChunkStatus.HEIGHTMAPS);
-        noiseGenerator.setClampValues(-100, 100);
+
+        // final float[] continentalness = new float[] {
+        // -1,
+        // 0.3f,
+        // 0.6f,
+        // 0.75f,
+        // 1.0f
+        // };
+
+        // final int[] height = new int[] {
+        // 50,
+        // 100,
+        // 150,
+        // 160,
+        // 200
+        // };
+
+        final float[] continentalness = new float[] {
+                -1,
+                0.1f,
+                0.3f,
+                0.5f,
+                0.9f,
+                1.0f
+        };
+
+        final int[] height = new int[] {
+                55,
+                75,
+                130,
+                140,
+                180,
+                185,
+        };
+
+        noiseGenerator.setClampValues(-1, 1);
         float[] heightNoise = noiseGenerator.getNoise2D(CHUNK_SIZE, CHUNK_SIZE, chunk.getBlockX(), chunk.getBlockZ(),
-                100, 512, 5, 2.4f, 0.5f);
+                1, 512, 5, 2.4f, 0.5f);
 
         for (int j = 0; j < heightNoise.length; j++) {
-            int bkX = (j & CHUNK_SIZE_BITMASK);
+            int bkX = (j & Chunk.CHUNK_SIZE_BITMASK);
             int bkZ = (j / CHUNK_SIZE);
 
-            int height = (((int) heightNoise[j] + 100) / 2) + 50;
+            int h = interpolateHeight(continentalness, height, heightNoise[j]);
 
-            if (height >= CHUNK_HEIGHT) {
-                height = CHUNK_HEIGHT - 1;
+            if (h >= CHUNK_HEIGHT) {
+                h = CHUNK_HEIGHT - 1;
             }
 
-            downFill(chunk, bkX, bkZ, height, Blocks.STONE);
+            downFill(chunk, bkX, bkZ, h, Blocks.STONE);
         }
     }
 
-    private static final int SEA_LEVEL = 90;
+    public static int interpolateHeight(float[] continentalness, int[] height, float value) {
+        int index = -1;
+        int length = continentalness.length;
+
+        // Find the index of the interval containing the value
+        for (int i = 0; i < length - 1; i++) {
+            if (value >= continentalness[i] && value < continentalness[i + 1]) {
+                index = i;
+                break;
+            }
+        }
+
+        if (index == -1) {
+            // If the value is outside the defined range, return the first or last height
+            // value
+            if (value < continentalness[0]) {
+                return height[0];
+            } else {
+                return height[length - 1];
+            }
+        }
+
+        // Perform linear interpolation
+        float startValue = continentalness[index];
+        float endValue = continentalness[index + 1];
+        int startHeight = height[index];
+        int endHeight = height[index + 1];
+
+        float interpolationRatio = (value - startValue) / (endValue - startValue);
+        int interpolatedHeight = (int) (startHeight + interpolationRatio * (endHeight - startHeight));
+
+        return interpolatedHeight;
+    }
+
+    private static final int SEA_LEVEL = 85;
     private static final int LAVA_LEVEL = 10;
-    private static final int CAVE_LEVEL = 80;
+    private static final int CAVE_LEVEL = 60;
 
     private void carvers(Chunk chunk) {
         carverGenerator.setClampValues(-0.9f, 0.8f);
@@ -143,13 +213,13 @@ public class WorldGenerator extends TerrainGenerator {
 
         float permValue = permutation.permutationValue(chunk.getXPos(), chunk.getZPos());
 
-        if (permValue < 0.02f) {
+        if (permValue < 0.02f && getHighestBlockAt(chunk, 0, 0) == Blocks.SAND) {
             int height = getMinPositionForStructure(chunk, 0, 0, 14, 14) - 1;
             pyramid(chunk, 0, height, 0, 14, height + CHUNK_SIZE, 14, Blocks.STONEBRICKS, Blocks.MOSSY_STONEBRICKS);
         }
 
         // HOUSE
-        if (permValue > 0.04f && permValue < 0.08) {
+        if (permValue > 0.04f && permValue < 0.08 && getHighestBlockAt(chunk, 0, 0) == Blocks.GRASS_BLOCK) {
             int height = getMinPositionForStructure(chunk, 0, 0, 5, 5);
 
             fill(chunk, 0, height, 0, 5, height, 5, Blocks.STONEBRICKS);
@@ -199,52 +269,54 @@ public class WorldGenerator extends TerrainGenerator {
     }
 
     private void blocks(Chunk chunk) {
-        noiseGenerator.setClampValues(-100, 100);
-        float[] blockNoise = noiseGenerator.getNoise2D(CHUNK_SIZE, CHUNK_SIZE, chunk.getBlockX(), chunk.getBlockZ(),
-                100, 256, 3, 2.64f, 0.548f);
+        // noiseGenerator.setClampValues(-100, 100);
+        // float[] blockNoise = noiseGenerator.getNoise2D(CHUNK_SIZE, CHUNK_SIZE,
+        // chunk.getBlockX(), chunk.getBlockZ(),
+        // 100, 256, 3, 2.64f, 0.548f);
 
         short[] blocks = chunk.getBlocks();
 
         for (int x = 0; x < CHUNK_SIZE; x++) {
             for (int z = 0; z < CHUNK_SIZE; z++) {
-                int blocksIndx = x + z * CHUNK_SIZE;
-                float block = (blockNoise[blocksIndx] + 100) / 2;
+                // int blocksIndx = x + z * CHUNK_SIZE;
+                // float block = (blockNoise[blocksIndx] + 100) / 2;
 
-                if (block >= 50 && block < 75) {
-                    int layerCount = 0;
-                    short topBlock = Blocks.AIR;
-                    for (int y = CHUNK_HEIGHT - 1; y >= 0; y--) {
-                        int idx = Chunk.getBlockIndex(x, y, z);
-                        if (blocks[idx] == Blocks.STONE && y >= 40 && layerCount <= 5) {
-                            blocks[idx] = topBlock == Blocks.AIR ? Blocks.GRASS_BLOCK : Blocks.DIRT;
-                            layerCount++;
-                        }
-                        topBlock = blocks[idx];
-                        if (blocks[idx] == Blocks.AIR) {
-                            if (layerCount != 0)
-                                break;
-                            layerCount = 0;
-                        }
+                int layerCount = 0;
+                short topBlock = Blocks.AIR;
+                for (int y = CHUNK_HEIGHT - 1; y >= 0; y--) {
+                    int idx = Chunk.getBlockIndex(x, y, z);
+                    if (blocks[idx] == Blocks.STONE && y >= 40 && layerCount <= 5) {
+                        blocks[idx] = topBlock == Blocks.AIR ? Blocks.GRASS_BLOCK : Blocks.DIRT;
+                        layerCount++;
                     }
-                } else if (block < 50) {
-                    int layerCount = 0;
-                    for (int y = CHUNK_HEIGHT - 1; y >= 0; y--) {
-                        int idx = Chunk.getBlockIndex(x, y, z);
-                        if (blocks[idx] == Blocks.STONE) {
-                            if (layerCount <= 4)
-                                blocks[idx] = Blocks.SAND;
-                            else if (layerCount <= 6) {
-                                blocks[idx] = Blocks.DIRT;
-                            }
-                            layerCount++;
-                        }
-                        if (blocks[idx] == Blocks.AIR) {
-                            if (layerCount != 0)
-                                break;
-                            layerCount = 0;
-                        }
+                    topBlock = blocks[idx];
+                    if (blocks[idx] == Blocks.AIR) {
+                        if (layerCount != 0)
+                            break;
+                        layerCount = 0;
                     }
                 }
+                // if (block >= 50 && block < 75) {
+
+                // } else if (block < 50) {
+                // int layerCount = 0;
+                // for (int y = CHUNK_HEIGHT - 1; y >= 0; y--) {
+                // int idx = Chunk.getBlockIndex(x, y, z);
+                // if (blocks[idx] == Blocks.STONE) {
+                // if (layerCount <= 4)
+                // blocks[idx] = Blocks.SAND;
+                // else if (layerCount <= 6) {
+                // blocks[idx] = Blocks.DIRT;
+                // }
+                // layerCount++;
+                // }
+                // if (blocks[idx] == Blocks.AIR) {
+                // if (layerCount != 0)
+                // break;
+                // layerCount = 0;
+                // }
+                // }
+                // }
             }
         }
     }
@@ -280,10 +352,10 @@ public class WorldGenerator extends TerrainGenerator {
                         setBlock(chunk, x, y + 8, z - 1, Blocks.LEAVE);
                         setBlock(chunk, x, y + 8, z + 1, Blocks.LEAVE);
                     } else if (trees[idx] < -3) {
-                        setBlock(chunk, x, y + 1, z, Blocks.FLOWER);
+                        setBlock(chunk, x, y + 1, z, Blocks.RED_TULIP);
                     } else if (trees[idx] > 2.1f && trees[idx] < 2.6f) {
                         setBlock(chunk, x, y + 1, z,
-                                blockShuffle(x, y + 1, z, Blocks.PAEONIA, Blocks.BLUE_ORCHID));
+                                blockShuffle(x, y + 1, z, Blocks.POPPY, Blocks.BLUE_ORCHID));
                     }
                 }
             }

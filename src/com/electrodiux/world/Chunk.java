@@ -27,12 +27,13 @@ public class Chunk implements Serializable {
         SURFACE,
         CARVERS,
         HEIGHTMAPS,
-        FULL
+        COMPLETE
     }
 
     public Chunk(int x, int z) {
         this.xPos = x;
         this.zPos = z;
+        status = ChunkStatus.EMPTY;
 
         blocks = new short[CHUNK_AREA * CHUNK_HEIGHT];
     }
@@ -93,6 +94,10 @@ public class Chunk implements Serializable {
         return getWorldCoord(localZ, zPos);
     }
 
+    private static int getWorldCoord(int local, int chunk) {
+        return chunk * CHUNK_SIZE + local;
+    }
+
     public ChunkStatus getChunkStatus() {
         return status;
     }
@@ -122,13 +127,6 @@ public class Chunk implements Serializable {
 
     public static int getBlockIndexWithWorldCoords(int x, int y, int z) {
         return getBlockIndex(calculateIndexInChunk(x), y, calculateIndexInChunk(z));
-    }
-
-    public static int getWorldCoord(int local, int chunk) {
-        if (chunk < 0) {
-            return ((-chunk + 1) * CHUNK_SIZE) + local;
-        }
-        return chunk * CHUNK_SIZE + local;
     }
 
     @Override

@@ -45,8 +45,20 @@ public abstract class TerrainGenerator {
     protected int getHighestYAt(Chunk chunk, int x, int z) {
         short[] blocks = chunk.getBlocks();
         for (int y = CHUNK_HEIGHT - 1; y >= 0; y--) {
-            if (blocks[Chunk.getBlockIndex(x, y, z)] != Blocks.AIR) {
+            short block = blocks[Chunk.getBlockIndex(x, y, z)];
+            if (block != Blocks.AIR) {
                 return y;
+            }
+        }
+        return 0;
+    }
+
+    protected short getHighestBlockAt(Chunk chunk, int x, int z) {
+        short[] blocks = chunk.getBlocks();
+        for (int y = CHUNK_HEIGHT - 1; y >= 0; y--) {
+            short block = blocks[Chunk.getBlockIndex(x, y, z)];
+            if (block != Blocks.AIR) {
+                return block;
             }
         }
         return 0;

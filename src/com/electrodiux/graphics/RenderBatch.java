@@ -57,16 +57,8 @@ public class RenderBatch {
     }
 
     public void clearBufferData() {
-        // Delete Vertex Array Object
-        GL30.glBindVertexArray(vaoID);
         GL30.glDeleteVertexArrays(vaoID);
-
-        // Delete Vertex Buffer Object
-        GL30.glBindBuffer(GL30.GL_ARRAY_BUFFER, vboID);
         GL30.glDeleteBuffers(vboID);
-
-        // Delete Element Buffer Object
-        GL30.glBindBuffer(GL30.GL_ELEMENT_ARRAY_BUFFER, eboID);
         GL30.glDeleteBuffers(eboID);
     }
 

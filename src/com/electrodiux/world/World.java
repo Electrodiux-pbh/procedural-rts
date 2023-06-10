@@ -48,6 +48,10 @@ public class World {
         chunks.remove(getChunkIndexSearch(x, z));
     }
 
+    public void unloadChunk(Chunk chunk) {
+        chunks.remove(getChunkIndexSearch(chunk.getXPos(), chunk.getBlockZ()));
+    }
+
     public void generate(int radius) {
         CountDownLatch latch = new CountDownLatch((radius * 2 + 1) * (radius * 2 + 1));
         ExecutorService chunkExecutor = Executors.newFixedThreadPool(10);
@@ -77,12 +81,8 @@ public class World {
         return new ChunkIndex(x, z);
     }
 
-    private ChunkIndexSearch chunkIdx = new ChunkIndexSearch(0, 0);
-
     private ChunkIndexSearch getChunkIndexSearch(int x, int z) {
-        chunkIdx.x = x;
-        chunkIdx.z = z;
-        return chunkIdx;
+        return new ChunkIndexSearch(x, z);
     }
 
     public static int getXFromIndex(long idx) {
