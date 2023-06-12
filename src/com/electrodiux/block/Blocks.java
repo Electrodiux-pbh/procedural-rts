@@ -40,7 +40,6 @@ public class Blocks {
                                 .register();
 
                 BlockRegister.register("dirt", Blocks.DIRT)
-
                                 .setTexture("dirt.png")
                                 .register();
 
@@ -50,6 +49,7 @@ public class Blocks {
 
                 BlockRegister.register("water", Blocks.WATER)
                                 .setTexture("water.png")
+                                .setTransparent(true)
                                 .register();
 
                 BlockRegister.register("sand", Blocks.SAND)
@@ -64,6 +64,7 @@ public class Blocks {
                 BlockRegister.register("leave", Blocks.LEAVE)
                                 .setTexture("leave.png")
                                 .setTransparent(true)
+                                .setInternalFaces(true)
                                 .register();
 
                 BlockRegister.register("iron", Blocks.IRON)
@@ -109,7 +110,6 @@ public class Blocks {
 
                 BlockRegister.register("blue_orchid", Blocks.BLUE_ORCHID)
                                 .setTexture("blue_orchid.png")
-
                                 .setTransparent(true)
                                 .register();
 

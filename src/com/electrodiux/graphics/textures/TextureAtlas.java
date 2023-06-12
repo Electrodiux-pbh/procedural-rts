@@ -31,7 +31,6 @@ public class TextureAtlas {
         BufferedImage.saveImage(image, "atlas.png");
 
         Texture texture = Loader.loadTexture(image, filter, usesMipMaps, anisotropicExt);
-        image.freeImage();
 
         return texture;
     }
@@ -83,7 +82,7 @@ public class TextureAtlas {
 
             atlas.drawImage(x * textureWidth, y * textureHeight, textureWidth, textureHeight, image);
 
-            image.freeImage();
+            STBImage.stbi_image_free(image.getData());
         }
 
         atlas.flipVertically();

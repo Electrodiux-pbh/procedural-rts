@@ -26,7 +26,7 @@ public class Position {
         this.z += z;
     }
 
-    public float getX() {
+    public float x() {
         return x;
     }
 
@@ -38,7 +38,7 @@ public class Position {
         this.x = x;
     }
 
-    public float getY() {
+    public float y() {
         return y;
     }
 
@@ -50,7 +50,7 @@ public class Position {
         this.y = y;
     }
 
-    public float getZ() {
+    public float z() {
         return z;
     }
 

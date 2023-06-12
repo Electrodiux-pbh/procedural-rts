@@ -78,6 +78,7 @@ public class BlockRegister {
 
         Color mapColor;
         boolean transparent;
+        boolean internalFaces = false;
 
         Sprite[] textures;
         private int[] textureAtlasIndices;
@@ -128,6 +129,11 @@ public class BlockRegister {
 
         public BlockDefinitionRegister setTransparent(boolean transparent) {
             this.transparent = transparent;
+            return this;
+        }
+
+        public BlockDefinitionRegister setInternalFaces(boolean internalFaces) {
+            this.internalFaces = internalFaces;
             return this;
         }
 

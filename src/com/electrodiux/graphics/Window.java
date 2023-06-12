@@ -1,6 +1,7 @@
 package com.electrodiux.graphics;
 
 import org.lwjgl.glfw.GLFW;
+import org.lwjgl.opengl.GL11;
 import org.lwjgl.system.MemoryUtil;
 
 public class Window {
@@ -11,6 +12,8 @@ public class Window {
 
     private boolean fullScreen;
     private boolean visible;
+
+    private SizeCallback sizeCallback;
 
     public Window(int width, int height, String title) {
         this(width, height, title, false, true);
@@ -50,6 +53,11 @@ public class Window {
         GLFW.glfwSetWindowSizeCallback(glfwWindow, (window, newWidth, newHeight) -> {
             this.width = newWidth;
             this.height = newHeight;
+            GL11.glViewport(0, 0, newWidth, newHeight);
+
+            if (sizeCallback != null) {
+                sizeCallback.onSizeChanged(newWidth, newHeight);
+            }
         });
 
         // setIcon();
@@ -155,6 +163,14 @@ public class Window {
 
     public long getWindowID() {
         return glfwWindow;
+    }
+
+    public static interface SizeCallback {
+        public void onSizeChanged(int width, int height);
+    }
+
+    public void setSizeCallback(SizeCallback sizeCallback) {
+        this.sizeCallback = sizeCallback;
     }
 
 }

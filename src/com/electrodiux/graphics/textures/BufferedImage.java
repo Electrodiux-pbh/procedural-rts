@@ -3,7 +3,6 @@ package com.electrodiux.graphics.textures;
 import java.nio.ByteBuffer;
 
 import org.lwjgl.BufferUtils;
-import org.lwjgl.stb.STBImage;
 import org.lwjgl.stb.STBImageWrite;
 
 public class BufferedImage {
@@ -108,10 +107,6 @@ public class BufferedImage {
 
     public ByteBuffer getData() {
         return data;
-    }
-
-    public void freeImage() {
-        STBImage.stbi_image_free(data);
     }
 
     public int getWidth() {

@@ -1,7 +1,6 @@
 package com.electrodiux.world;
 
 import static com.electrodiux.world.Chunk.CHUNK_HEIGHT;
-import static com.electrodiux.world.Chunk.CHUNK_SIZE;
 
 import java.util.Collection;
 import java.util.Map;
@@ -11,6 +10,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import com.electrodiux.Position;
 import com.electrodiux.block.Blocks;
 import com.electrodiux.entities.Entity;
 import com.electrodiux.generation.TerrainGenerator;
@@ -23,6 +23,8 @@ public class World {
     private final Map<ChunkIndex, Chunk> chunks;
 
     private long seed;
+
+    private long worldTicks;
 
     public World(long seed) {
         this.seed = seed;
@@ -85,14 +87,6 @@ public class World {
         return new ChunkIndexSearch(x, z);
     }
 
-    public static int getXFromIndex(long idx) {
-        return (int) (idx >> 32);
-    }
-
-    public static int getZFromIndex(long idx) {
-        return (int) (idx & 0xFFFFFFFFL);
-    }
-
     public void fill(int x1, int y1, int z1, int x2, int y2, int z2, short block) {
         for (int x = x1; x <= x2; x++) {
             for (int z = z1; z <= z2; z++) {
@@ -113,10 +107,7 @@ public class World {
     }
 
     private boolean isBlockAt0(int x, int y, int z) {
-        int chunkX = x / CHUNK_SIZE;
-        int chunkZ = z / CHUNK_SIZE;
-
-        return getChunk(chunkX, chunkZ).getBlocks()[Chunk.getBlockIndexWithWorldCoords(x, y, z)] != Blocks.AIR;
+        return getChunkFromWorldCoords(x, z).getBlocks()[Chunk.getBlockIndexWithWorldCoords(x, y, z)] != Blocks.AIR;
     }
 
     public void setBlock(int x, int y, int z, short block) {
@@ -126,17 +117,11 @@ public class World {
     }
 
     private void setBlock0(int x, int y, int z, short block) {
-        int chunkX = x / CHUNK_SIZE;
-        int chunkZ = z / CHUNK_SIZE;
-
-        getChunk(chunkX, chunkZ).getBlocks()[Chunk.getBlockIndexWithWorldCoords(x, y, z)] = block;
+        getChunkFromWorldCoords(x, z).getBlocks()[Chunk.getBlockIndexWithWorldCoords(x, y, z)] = block;
     }
 
     public int getHighestYAt(int x, int z) {
-        int chunkX = x / CHUNK_SIZE;
-        int chunkZ = z / CHUNK_SIZE;
-
-        Chunk chunk = getChunk(chunkX, chunkZ);
+        Chunk chunk = getChunkFromWorldCoords(x, z);
         if (chunk == null)
             return Blocks.NULL;
 
@@ -153,17 +138,25 @@ public class World {
         return chunks.get(getChunkIndexSearch(x, z));
     }
 
+    public Chunk getChunkFromWorldCoords(int x, int z) {
+        int chunkX = (int) Math.floor(x / (float) Chunk.CHUNK_SIZE);
+        int chunkZ = (int) Math.floor(z / (float) Chunk.CHUNK_SIZE);
+
+        return getChunk(chunkX, chunkZ);
+    }
+
     public short getBlock(int x, int y, int z) {
         if (outOfBounds(y))
             return Blocks.AIR;
         return getBlock0(x, y, z);
     }
 
-    private short getBlock0(int x, int y, int z) {
-        int chunkX = x / CHUNK_SIZE;
-        int chunkZ = z / CHUNK_SIZE;
+    public short getBlock(Position pos) {
+        return getBlock(pos.getBlockX(), pos.getBlockY(), pos.getBlockZ());
+    }
 
-        Chunk chunk = getChunk(chunkX, chunkZ);
+    private short getBlock0(int x, int y, int z) {
+        Chunk chunk = getChunkFromWorldCoords(x, z);
 
         if (chunk == null)
             return Blocks.AIR;
@@ -190,11 +183,28 @@ public class World {
     // #region Entities
 
     public void addEntity(Entity entity) {
-        this.entities.put(entity.getUuid(), entity);
+        this.entities.put(entity.getUUID(), entity);
     }
 
     public Collection<Entity> getEntities() {
         return entities.values();
+    }
+
+    // #endregion
+
+    // #region Ticking
+
+    public void tick() {
+        worldTicks++;
+
+        for (Entity entity : entities.values()) {
+            short block = getBlock(entity.getPosition());
+
+            float displacement = 9.8f / 20f;
+            if (block == Blocks.AIR) {
+                entity.getPosition().add(0, -displacement, 0);
+            }
+        }
     }
 
     // #endregion

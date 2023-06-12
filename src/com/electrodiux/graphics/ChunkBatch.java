@@ -22,12 +22,17 @@ public class ChunkBatch {
 
     private List<RenderBatch> batches;
     private int facesCount = 0;
+    private volatile boolean buffered = false;
+    private volatile boolean isComputed = false;
 
     public ChunkBatch() {
         batches = new ArrayList<RenderBatch>();
     }
 
     public synchronized void render(Texture texture) {
+        if (!buffered)
+            return;
+
         for (RenderBatch batch : batches) {
             batch.render(texture);
         }
@@ -35,6 +40,7 @@ public class ChunkBatch {
 
     public synchronized void computeMesh(Chunk chunk, World world) {
         facesCount = 0;
+        isComputed = false;
 
         for (int x = 0; x < Chunk.CHUNK_SIZE; x++) {
             for (int z = 0; z < Chunk.CHUNK_SIZE; z++) {
@@ -51,6 +57,9 @@ public class ChunkBatch {
                 }
             }
         }
+
+        buffered = false;
+        isComputed = true;
     }
 
     private Matrix4f transformMatrix = new Matrix4f();
@@ -60,27 +69,44 @@ public class ChunkBatch {
         transformMatrix.identity();
         transformMatrix.translate(x + chunk.getBlockX(), y, z + chunk.getBlockZ());
 
-        if (isHideBlock(world, chunk, x, y + 1, z))
+        if (isVisibleFace(world, chunk, x, y + 1, z, block))
             addFace(getFace(Blocks.FACE_TOP, block));
-        if (isHideBlock(world, chunk, x, y - 1, z))
+        if (isVisibleFace(world, chunk, x, y - 1, z, block))
             addFace(getFace(Blocks.FACE_BOTTOM, block));
-        if (isHideBlock(world, chunk, x, y, z + 1))
+        if (isVisibleFace(world, chunk, x, y, z + 1, block))
             addFace(getFace(Blocks.FACE_FRONT, block));
-        if (isHideBlock(world, chunk, x, y, z - 1))
+        if (isVisibleFace(world, chunk, x, y, z - 1, block))
             addFace(getFace(Blocks.FACE_BACK, block));
-        if (isHideBlock(world, chunk, x + 1, y, z))
+        if (isVisibleFace(world, chunk, x + 1, y, z, block))
             addFace(getFace(Blocks.FACE_RIGHT, block));
-        if (isHideBlock(world, chunk, x - 1, y, z))
+        if (isVisibleFace(world, chunk, x - 1, y, z, block))
             addFace(getFace(Blocks.FACE_LEFT, block));
     }
 
-    private boolean isHideBlock(World world, Chunk chunk, int x, int y, int z) {
-        short block = chunk.getBlockId(x, y, z);
-        if (block == Blocks.NULL) {
-            block = world.getBlock(chunk.getWorldXFromLocal(x), y,
+    private boolean isVisibleFace(World world, Chunk chunk, int x, int y, int z, BlockDefinition block) {
+        short otherBlock = chunk.getBlockId(x, y, z);
+        if (otherBlock == Blocks.NULL) {
+            otherBlock = world.getBlock(chunk.getWorldXFromLocal(x), y,
                     chunk.getWorldZFromLocal(z));
         }
-        return block == Blocks.AIR || BlockRegister.getBlock(block).isTransparent();
+
+        if (otherBlock == Blocks.AIR) {
+            return true;
+        }
+
+        BlockDefinition otherBlockDefinition = BlockRegister.getBlock(otherBlock);
+
+        if (otherBlockDefinition.isTransparent()) {
+            if (block.hasInternalFaces()) {
+                return true;
+            }
+
+            if (otherBlockDefinition != block) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private void addFace(Face face) {
@@ -98,7 +124,6 @@ public class ChunkBatch {
         }
         if (!added) {
             RenderBatch newBatch = new RenderBatch(MAX_BATCH_SIZE);
-            newBatch.allocateBatch();
             batches.add(newBatch);
             newBatch.addFace(face);
         }
@@ -136,6 +161,8 @@ public class ChunkBatch {
     }
 
     public synchronized void bufferData() {
+        buffered = false;
+
         Iterator<RenderBatch> iter = batches.iterator();
 
         double divisionResult = (double) facesCount / MAX_BATCH_SIZE;
@@ -150,10 +177,18 @@ public class ChunkBatch {
             if (i >= numBatches) {
                 batch.clearBufferData();
                 iter.remove();
+                continue;
             }
+
+            if (!batch.isAllocated()) {
+                batch.allocateBatch();
+            }
+
             batch.bufferData();
             i++;
         }
+
+        buffered = true;
     }
 
     public void clearBufferData() {
@@ -163,6 +198,14 @@ public class ChunkBatch {
             batch.clearBufferData();
             iter.remove();
         }
+    }
+
+    public boolean isBuffered() {
+        return this.buffered;
+    }
+
+    public boolean isComputed() {
+        return this.isComputed;
     }
 
     // #region Block Faces

@@ -9,7 +9,6 @@ import com.electrodiux.block.Blocks;
 public class Chunk implements Serializable {
 
     public static final int CHUNK_SIZE = 16; // 16 es potencia natural de 2
-    public static final int CHUNK_SIZE_BITMASK = 15; // 16 - 1
     public static final int CHUNK_AREA = CHUNK_SIZE * CHUNK_SIZE;
     public static final int CHUNK_HEIGHT = 256; // es potencia natural de 2
 
@@ -87,15 +86,11 @@ public class Chunk implements Serializable {
     }
 
     public int getWorldXFromLocal(int localX) {
-        return getWorldCoord(localX, xPos);
+        return xPos * CHUNK_SIZE + localX;
     }
 
     public int getWorldZFromLocal(int localZ) {
-        return getWorldCoord(localZ, zPos);
-    }
-
-    private static int getWorldCoord(int local, int chunk) {
-        return chunk * CHUNK_SIZE + local;
+        return zPos * CHUNK_SIZE + localZ;
     }
 
     public ChunkStatus getChunkStatus() {
@@ -114,19 +109,8 @@ public class Chunk implements Serializable {
         return y < 0 || y >= CHUNK_HEIGHT || x < 0 || x >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE;
     }
 
-    private static int calculateIndexInChunk(int coordinate) {
-        // x = -16 => x = -15 because negative chunks starts at
-        // -1 and positive chunks starts at 0
-
-        if (coordinate < 0) {
-            return CHUNK_SIZE - 1 - (-(coordinate + 1) & CHUNK_SIZE_BITMASK);
-        }
-
-        return coordinate & CHUNK_SIZE_BITMASK;
-    }
-
     public static int getBlockIndexWithWorldCoords(int x, int y, int z) {
-        return getBlockIndex(calculateIndexInChunk(x), y, calculateIndexInChunk(z));
+        return getBlockIndex(Math.floorMod(x, Chunk.CHUNK_SIZE), y, Math.floorMod(z, Chunk.CHUNK_SIZE));
     }
 
     @Override

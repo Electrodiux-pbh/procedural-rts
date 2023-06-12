@@ -72,7 +72,8 @@ public class NoiseGenerator {
      *                             result
      * @return the grid of noise
      */
-    public float[] getNoise2D(int width, int height, int posX, int posY, float range, int chunkSize, int octaves,
+    public float[] getNoise2D(final int width, final int height, final int posX, final int posY, float range,
+            int chunkSize, int octaves,
             float lacunarityFactor, float persistanceFactor) {
 
         if (lacunarityFactor <= 0)
@@ -93,7 +94,8 @@ public class NoiseGenerator {
             for (int i = 0; i < width * height; i++) {
                 int x = i % width;
                 int y = i / width;
-                double noise = noise2D[x + y * width] + noise(x + posX, y + posY, noiseScale) * persistance;
+
+                double noise = noise2D[x + y * width] + noise(posX + x, posY + y, noiseScale) * persistance;
                 if (oct + 1 == octaves) {
                     noise2D[i] = (float) clamp(noise * range, minClapm, maxClapm);
                     continue;

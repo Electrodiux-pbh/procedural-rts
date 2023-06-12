@@ -17,6 +17,7 @@ public class RenderBatch {
 
     private int numSprites;
     private boolean hasRoom;
+    private boolean isAllocated;
     private float[] vertices;
 
     private int vaoID, vboID, eboID;
@@ -33,33 +34,39 @@ public class RenderBatch {
     }
 
     public void allocateBatch() {
-        // Generate and bind a Vertex Array Object
-        vaoID = GL30.glGenVertexArrays();
-        GL30.glBindVertexArray(vaoID);
+        if (!isAllocated()) {
+            // Generate and bind a Vertex Array Object
+            vaoID = GL30.glGenVertexArrays();
+            GL30.glBindVertexArray(vaoID);
 
-        // Allocate space for vertices
-        vboID = GL30.glGenBuffers();
-        GL30.glBindBuffer(GL30.GL_ARRAY_BUFFER, vboID);
-        GL30.glBufferData(GL30.GL_ARRAY_BUFFER, vertices.length * Float.BYTES, GL30.GL_DYNAMIC_DRAW);
+            // Allocate space for vertices
+            vboID = GL30.glGenBuffers();
+            GL30.glBindBuffer(GL30.GL_ARRAY_BUFFER, vboID);
+            GL30.glBufferData(GL30.GL_ARRAY_BUFFER, vertices.length * Float.BYTES, GL30.GL_DYNAMIC_DRAW);
 
-        // Create and upload indices buffer
-        eboID = GL30.glGenBuffers();
-        int[] indices = generateIndices();
-        GL30.glBindBuffer(GL30.GL_ELEMENT_ARRAY_BUFFER, eboID);
-        GL30.glBufferData(GL30.GL_ELEMENT_ARRAY_BUFFER, indices, GL30.GL_STATIC_DRAW);
+            // Create and upload indices buffer
+            eboID = GL30.glGenBuffers();
+            int[] indices = generateIndices();
+            GL30.glBindBuffer(GL30.GL_ELEMENT_ARRAY_BUFFER, eboID);
+            GL30.glBufferData(GL30.GL_ELEMENT_ARRAY_BUFFER, indices, GL30.GL_STATIC_DRAW);
 
-        // Enable the buffer attribute pointers
-        GL30.glVertexAttribPointer(0, POS_SIZE, GL30.GL_FLOAT, false, VERTEX_SIZE_BYTES, POS_OFFSET);
-        GL30.glEnableVertexAttribArray(0);
+            // Enable the buffer attribute pointers
+            GL30.glVertexAttribPointer(0, POS_SIZE, GL30.GL_FLOAT, false, VERTEX_SIZE_BYTES, POS_OFFSET);
+            GL30.glEnableVertexAttribArray(0);
 
-        GL30.glVertexAttribPointer(1, TEXTURE_SIZE, GL30.GL_FLOAT, false, VERTEX_SIZE_BYTES, TEXTURE_OFFSET);
-        GL30.glEnableVertexAttribArray(1);
+            GL30.glVertexAttribPointer(1, TEXTURE_SIZE, GL30.GL_FLOAT, false, VERTEX_SIZE_BYTES, TEXTURE_OFFSET);
+            GL30.glEnableVertexAttribArray(1);
+
+            isAllocated = true;
+        }
     }
 
     public void clearBufferData() {
-        GL30.glDeleteVertexArrays(vaoID);
-        GL30.glDeleteBuffers(vboID);
-        GL30.glDeleteBuffers(eboID);
+        if (isAllocated()) {
+            GL30.glDeleteVertexArrays(vaoID);
+            GL30.glDeleteBuffers(vboID);
+            GL30.glDeleteBuffers(eboID);
+        }
     }
 
     public void addFace(Face face) {
@@ -152,6 +159,10 @@ public class RenderBatch {
 
     public boolean hasRoom() {
         return this.hasRoom;
+    }
+
+    public boolean isAllocated() {
+        return this.isAllocated;
     }
 
     public static class Face {

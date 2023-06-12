@@ -12,6 +12,7 @@ import com.electrodiux.entities.Entity.Properties;
 import com.electrodiux.generation.WorldGenerator;
 import com.electrodiux.graphics.Renderer;
 import com.electrodiux.graphics.Window;
+import com.electrodiux.util.Timer;
 import com.electrodiux.world.World;
 
 public class Main {
@@ -33,13 +34,17 @@ public class Main {
         System.out.println("Start generating:");
         long startGenerating = System.currentTimeMillis();
         world.generate(16);
-        System.out.println("Time to generate: " + (System.currentTimeMillis() - startGenerating) + "ms");
+        System.out.println("Time to generate: " + (System.currentTimeMillis() -
+                startGenerating) + "ms");
 
-        entity = new Entity(UUID.randomUUID(), new Properties().texture("entity.png"));
-        entity.getPosition()
-                .setY(world.getHighestYAt(entity.getPosition().getBlockX(), entity.getPosition().getBlockZ()) + 1);
+        entity = new Entity(UUID.randomUUID(), new Properties().texture("blocks/stone.png").model("player.obj"));
+        entity.getPosition().setY(100);
 
         world.addEntity(entity);
+
+        Timer ticker = new Timer(20);
+        ticker.addHandler(world::tick);
+        ticker.start();
 
         window.setVisibility(true);
         Renderer renderer = new Renderer(window);

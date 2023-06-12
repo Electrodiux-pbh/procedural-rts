@@ -14,6 +14,7 @@ public class BlockDefinition implements Registrable {
 
     private final Color mapColor;
     private final boolean transparent;
+    private final boolean internalFaces;
 
     private final Sprite[] textures;
 
@@ -23,6 +24,8 @@ public class BlockDefinition implements Registrable {
 
         this.mapColor = builder.mapColor;
         this.transparent = builder.transparent;
+        this.internalFaces = builder.internalFaces;
+
         this.textures = builder.textures;
     }
 
@@ -47,8 +50,20 @@ public class BlockDefinition implements Registrable {
         return transparent;
     }
 
+    public boolean hasInternalFaces() {
+        return internalFaces;
+    }
+
     @Override
     public String getRegistryName() {
         return blockId;
+    }
+
+    public boolean isInternalFaces() {
+        return internalFaces;
+    }
+
+    public Sprite[] getTextures() {
+        return textures;
     }
 }

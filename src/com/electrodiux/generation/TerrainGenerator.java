@@ -36,6 +36,12 @@ public abstract class TerrainGenerator {
         chunk.getBlocks()[Chunk.getBlockIndex(x, y, z)] = block;
     }
 
+    protected void setBlock(Chunk chunk, int x, int y, int z, short... blocks) {
+        if (outOfBounds(x, y, z))
+            return;
+        chunk.getBlocks()[Chunk.getBlockIndex(x, y, z)] = blockShuffle(x, y, z, blocks);
+    }
+
     protected short getBlock(Chunk chunk, int x, int y, int z) {
         if (outOfBounds(x, y, z))
             return Blocks.AIR;

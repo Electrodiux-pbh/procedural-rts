@@ -68,13 +68,12 @@ public class Camera {
 		return this.viewMatrix;
 	}
 
-	public void clearColor() {
-		GL11.glClearColor(bg.r(), bg.g(), bg.b(), bg.a());
+	public Matrix4f getProjectionViewMatrix() {
+		return getViewMatrix().mulLocal(getProjectionMatrix());
 	}
 
-	public void setProjectionsToShader(Shader shader) {
-		shader.setMatrix4f("projection", getProjectionMatrix());
-		shader.setMatrix4f("view", getViewMatrix());
+	public void clearColor() {
+		GL11.glClearColor(bg.r(), bg.g(), bg.b(), bg.a());
 	}
 
 	public Matrix4f getProjectionMatrix() {
