@@ -1,12 +1,15 @@
 package com.electrodiux.world;
 
-import java.io.Serializable;
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 
 import com.electrodiux.block.BlockDefinition;
 import com.electrodiux.block.BlockRegister;
 import com.electrodiux.block.Blocks;
 
-public class Chunk implements Serializable {
+public class Chunk implements Externalizable {
 
     public static final int CHUNK_SIZE = 16; // 16 es potencia natural de 2
     public static final int CHUNK_AREA = CHUNK_SIZE * CHUNK_SIZE;
@@ -14,9 +17,11 @@ public class Chunk implements Serializable {
 
     public static final int CHUNK_PALLETE_BATCH_SIZE = 10;
 
-    private final short[] blocks;
+    public static final int CHUNK_FORMAT_VERSION = 0;
 
-    private final int xPos, zPos;
+    private short[] blocks;
+
+    private int xPos, zPos;
 
     private ChunkStatus status;
 
@@ -91,6 +96,33 @@ public class Chunk implements Serializable {
 
     public int getWorldZFromLocal(int localZ) {
         return zPos * CHUNK_SIZE + localZ;
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        int version = in.readInt();
+        if (version != CHUNK_FORMAT_VERSION)
+            return;
+
+        if (in.readObject() instanceof short[] blocks) {
+            this.blocks = (short[]) blocks;
+        } else {
+            throw new ClassNotFoundException("Chunk blocks are not of type short[]");
+        }
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        out.write(CHUNK_FORMAT_VERSION);
+        out.writeObject(this.blocks);
+    }
+
+    public static int getChunkXFromWorld(int blockX) {
+        return Math.floorDiv(blockX, CHUNK_SIZE);
+    }
+
+    public static int getChunkZFromWorld(int blockZ) {
+        return Math.floorDiv(blockZ, CHUNK_SIZE);
     }
 
     public ChunkStatus getChunkStatus() {

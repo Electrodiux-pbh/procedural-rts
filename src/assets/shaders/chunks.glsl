@@ -50,5 +50,6 @@ void main()
 		discard;
 	}
 
-	color = mix(transitionFogColor, textureColor, visibility);
+	//color = mix(transitionFogColor, textureColor, visibility);
+	color = textureColor;
 }

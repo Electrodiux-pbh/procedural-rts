@@ -24,6 +24,7 @@ public class ChunkBatch {
     private int facesCount = 0;
     private volatile boolean buffered = false;
     private volatile boolean isComputed = false;
+    private volatile boolean deletedBatch = false;
 
     public ChunkBatch() {
         batches = new ArrayList<RenderBatch>();
@@ -191,7 +192,9 @@ public class ChunkBatch {
         buffered = true;
     }
 
-    public void clearBufferData() {
+    public synchronized void clearBufferData() {
+        deletedBatch = true;
+
         Iterator<RenderBatch> iter = batches.iterator();
         while (iter.hasNext()) {
             RenderBatch batch = iter.next();
@@ -206,6 +209,10 @@ public class ChunkBatch {
 
     public boolean isComputed() {
         return this.isComputed;
+    }
+
+    public boolean isDeleted() {
+        return this.deletedBatch;
     }
 
     // #region Block Faces

@@ -1,12 +1,9 @@
 package com.electrodiux.graphics;
 
-import static org.lwjgl.opengl.GL11.GL_DEPTH_TEST;
 import static org.lwjgl.opengl.GL11.GL_FLOAT;
 import static org.lwjgl.opengl.GL11.GL_LINES;
 import static org.lwjgl.opengl.GL11.GL_POINTS;
-import static org.lwjgl.opengl.GL11.glDisable;
 import static org.lwjgl.opengl.GL11.glDrawArrays;
-import static org.lwjgl.opengl.GL11.glEnable;
 import static org.lwjgl.opengl.GL11.glLineWidth;
 import static org.lwjgl.opengl.GL11.glPointSize;
 import static org.lwjgl.opengl.GL15.GL_ARRAY_BUFFER;
@@ -22,9 +19,7 @@ import static org.lwjgl.opengl.GL30.glBindVertexArray;
 import static org.lwjgl.opengl.GL30.glGenVertexArrays;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 
 import org.joml.Vector4f;
 
@@ -38,16 +33,10 @@ public class DebugDraw {
     private static boolean loaded = false;
     private static boolean active = false;
 
-    private static final List<Shape> shapes = new ArrayList<Shape>();
-    private static final List<Point> points = new ArrayList<Point>();
-
-    // 6 floats per point, 2 points per line
     private static DebugRenderBatch linesBatch;
     private static DebugRenderBatch pointsBatch;
 
     private static Shader debugShader;
-
-    private static boolean ignoreDepthTest = false;
 
     public static void load() {
         try {
@@ -71,17 +60,8 @@ public class DebugDraw {
             return;
         }
 
-        if (!active || (shapes.size() <= 0 && points.size() <= 0)) {
+        if (!active || (linesBatch.count <= 0 && pointsBatch.count <= 0)) {
             return;
-        }
-
-        computePointsBuffer(pointsBatch);
-        computeBuffer(linesBatch);
-
-        if (ignoreDepthTest) {
-            glDisable(GL_DEPTH_TEST);
-        } else {
-            glEnable(GL_DEPTH_TEST);
         }
 
         debugShader.use();
@@ -93,49 +73,20 @@ public class DebugDraw {
         glPointSize(6f);
         pointsBatch.render(GL_POINTS, 1); // One per point
 
+        linesBatch.reset();
+        pointsBatch.reset();
+
         debugShader.detach();
-
-        shapes.clear();
-        points.clear();
     }
 
-    private static void computePointsBuffer(DebugRenderBatch batch) {
-        batch.count = 0;
-        batch.vertexIndex = 0;
-        for (Point point : points) {
-            if (batch.count >= MAX_LINES) {
-                return;
-            }
-
-            addPointToVertexBuffer(batch, point.getPosition(), point.getColor());
-        }
-    }
-
-    private static void computeBuffer(DebugRenderBatch batch) {
-        batch.count = 0;
-        batch.vertexIndex = 0;
-        for (Shape shape : shapes) {
-            if (batch.count >= MAX_LINES)
-                break;
-
-            Color color = shape.getColor();
-
-            if (shape instanceof Line line) {
-                Vector3 from = line.getFrom();
-                Vector3 to = line.getTo();
-
-                addLineToVertexBuffer(batch, from, to, color);
-            }
-        }
-    }
-
-    private static void addLineToVertexBuffer(DebugRenderBatch batch, Vector3 from, Vector3 to, Color color) {
-        addLineToVertexBuffer(batch, from.x(), from.y(), from.z(), to.x(), to.y(), to.z(), color);
-    }
+    // private static void addLineToVertexBuffer(DebugRenderBatch batch, Vector3
+    // from, Vector3 to, Color color) {
+    // addLineToVertexBuffer(batch, from.x(), from.y(), from.z(), to.x(), to.y(),
+    // to.z(), color);
+    // }
 
     private static void addLineToVertexBuffer(DebugRenderBatch batch, float fromx, float fromy, float fromz, float tox,
-            float toy,
-            float toz, Color color) {
+            float toy, float toz, Color color) {
         if (batch.count >= MAX_LINES) {
             return;
         }
@@ -159,10 +110,14 @@ public class DebugDraw {
         batch.count++;
     }
 
-    private static void addPointToVertexBuffer(DebugRenderBatch batch, Vector3 pos, Color color) {
-        batch.vertexArray[batch.vertexIndex + 0] = pos.x;
-        batch.vertexArray[batch.vertexIndex + 1] = pos.y;
-        batch.vertexArray[batch.vertexIndex + 2] = pos.z;
+    private static void addPointToVertexBuffer(DebugRenderBatch batch, float px, float py, float pz, Color color) {
+        if (batch.count >= MAX_POINTS) {
+            return;
+        }
+
+        batch.vertexArray[batch.vertexIndex + 0] = px;
+        batch.vertexArray[batch.vertexIndex + 1] = py;
+        batch.vertexArray[batch.vertexIndex + 2] = pz;
         batch.vertexArray[batch.vertexIndex + 3] = color.r();
         batch.vertexArray[batch.vertexIndex + 4] = color.g();
         batch.vertexArray[batch.vertexIndex + 5] = color.b();
@@ -211,35 +166,44 @@ public class DebugDraw {
             glDisableVertexAttribArray(1);
             glBindVertexArray(0);
         }
-    }
 
-    public static void addLine(Vector3 from, Vector3 to) {
-        addLine(from, to, Color.BLACK);
+        public void reset() {
+            count = 0;
+            vertexIndex = 0;
+        }
     }
 
     public static void addLine(Vector4f from, Vector4f to, Color color) {
-        addLine(new Vector3(from.x, from.y, from.z), new Vector3(to.x, to.y, to.z), color);
+        addLine(from.x, from.y, from.z, to.x, to.y, to.z, color);
     }
 
     public static void addLine(Vector3 from, Vector3 to, Color color) {
+        addLine(from.x(), from.y(), from.z(), to.x(), to.y(), to.z(), color);
+    }
+
+    public static void addLine(float fromX, float fromY, float fromZ, float toX, float toY, float toZ, Color color) {
         if (loaded) {
-            shapes.add(new Line(from, to, color));
+            addLineToVertexBuffer(linesBatch, fromX, fromY, fromZ, toX, toY, toZ, color);
         }
     }
 
     public static void addPoint(Vector3 position, Color color) {
+        addPoint(position.x(), position.y(), position.z(), color);
+    }
+
+    public static void addPoint(float px, float py, float pz, Color color) {
         if (loaded) {
-            points.add(new Point(position, color));
+            addPointToVertexBuffer(pointsBatch, px, py, pz, color);
         }
     }
 
-    public static boolean isIgnoreDepthTest() {
-        return ignoreDepthTest;
-    }
+    // public static void renderString(String text, float x, float y, Color color,
+    // Font font) {
+    // GL11.glBindTexture(GL11.GL_TEXTURE_2D, font.getFontTextureId());
+    // GL11.glColor3f(color.r(), color.g(), color.b());
+    // GL11.glRasterPos2f(x, y);
 
-    public static void setIgnoreDepthTest(boolean ignoreDepthTest) {
-        DebugDraw.ignoreDepthTest = ignoreDepthTest;
-    }
+    // }
 
     public static boolean isActive() {
         return active;
@@ -247,55 +211,6 @@ public class DebugDraw {
 
     public static void setActive(boolean active) {
         DebugDraw.active = active;
-    }
-
-}
-
-abstract class Shape {
-
-    protected Color color;
-
-    protected Shape(Color color) {
-        this.color = color;
-    }
-
-    public Color getColor() {
-        return color;
-    }
-
-}
-
-class Line extends Shape {
-
-    private Vector3 from, to;
-
-    public Line(Vector3 from, Vector3 to, Color color) {
-        super(color);
-        this.from = from;
-        this.to = to;
-    }
-
-    public Vector3 getFrom() {
-        return from;
-    }
-
-    public Vector3 getTo() {
-        return to;
-    }
-
-}
-
-class Point extends Shape {
-
-    private Vector3 position;
-
-    protected Point(Vector3 position, Color color) {
-        super(color);
-        this.position = position;
-    }
-
-    public Vector3 getPosition() {
-        return position;
     }
 
 }

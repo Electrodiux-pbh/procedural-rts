@@ -29,12 +29,12 @@ public final class MathUtils {
         return a + (b - a) * t;
     }
 
-    public static float easeInOut(float t) {
+    public static float bezierEaseInOut(float t) {
         return t * t * (3 - 2 * t);
     }
 
     public static float slerp(float a, float b, float t) {
-        return lerp(a, b, easeInOut(t));
+        return lerp(a, b, bezierEaseInOut(t));
     }
 
     public static Matrix4f transformMatrix(Vector3 position, Vector3 rotation, Vector3 scale, Matrix4f target) {

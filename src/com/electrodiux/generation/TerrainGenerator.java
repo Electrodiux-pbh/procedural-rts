@@ -21,7 +21,14 @@ public abstract class TerrainGenerator {
         blockShufflePermutation = new Permutation(Permutation.calculatePermutedSeed(seed, "block_shuffle"));
     }
 
-    public abstract Chunk generateChunk(int xPos, int zPos);
+    public abstract Chunk generateChunk(Chunk chunk);
+
+    public Chunk generateChunk(int xPos, int zPos) {
+        Chunk chunk = new Chunk(xPos, zPos);
+        return generateChunk(chunk);
+    }
+
+    // #region Generic generation methods
 
     protected void downFill(Chunk chunk, int x, int z, int yHeight, short block) {
         short[] blocks = chunk.getBlocks();
@@ -145,5 +152,7 @@ public abstract class TerrainGenerator {
             return blocks[selectedBlockIndex];
         }
     }
+
+    // #endregion
 
 }

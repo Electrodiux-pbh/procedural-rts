@@ -14,10 +14,13 @@ import com.electrodiux.Position;
 import com.electrodiux.block.Blocks;
 import com.electrodiux.entities.Entity;
 import com.electrodiux.generation.TerrainGenerator;
+import com.electrodiux.world.Chunk.ChunkStatus;
 
 public class World {
 
     private transient TerrainGenerator generator;
+
+    private transient ExecutorService chunkGeneratorService;
 
     private final Map<UUID, Entity> entities;
     private final Map<ChunkIndex, Chunk> chunks;
@@ -30,6 +33,8 @@ public class World {
         this.seed = seed;
         this.chunks = new ConcurrentHashMap<>();
         this.entities = new ConcurrentHashMap<>();
+
+        this.chunkGeneratorService = Executors.newFixedThreadPool(6);
     }
 
     public void setGenerator(TerrainGenerator generator) {
@@ -37,54 +42,83 @@ public class World {
     }
 
     public void loadChunk(int x, int z) {
-        ChunkIndexSearch idx = getChunkIndexSearch(x, z);
+        ChunkIndex idx = getChunkIndex(x, z);
         if (chunks.containsKey(idx)) {
             return;
         } else {
-            Chunk chunk = generator.generateChunk(x, z);
-            chunks.put(idx, chunk);
+            generateChunkAsync(idx);
         }
     }
 
     public void unloadChunk(int x, int z) {
-        chunks.remove(getChunkIndexSearch(x, z));
+        chunks.remove(getChunkIndex(x, z));
     }
 
     public void unloadChunk(Chunk chunk) {
-        chunks.remove(getChunkIndexSearch(chunk.getXPos(), chunk.getBlockZ()));
+        chunks.remove(getChunkIndex(chunk.getXPos(), chunk.getZPos()));
+    }
+
+    public void unloadChunks() {
+        chunks.clear();
     }
 
     public void generate(int radius) {
-        CountDownLatch latch = new CountDownLatch((radius * 2 + 1) * (radius * 2 + 1));
-        ExecutorService chunkExecutor = Executors.newFixedThreadPool(10);
+        final int cx = 0;
+        final int cz = 0;
 
-        for (int x = -radius; x <= radius; x++) {
-            for (int z = -radius; z <= radius; z++) {
-                final int xPos = x;
-                final int zPos = z;
+        final int size = (radius * 2 + 1);
+        CountDownLatch latch = new CountDownLatch(size * size);
 
-                chunkExecutor.submit(() -> {
-                    Chunk chunk = generator.generateChunk(xPos, zPos);
-                    chunks.put(getChunkIndex(xPos, zPos), chunk);
-                    latch.countDown();
-                });
+        for (int l = 0; l <= radius; l++) {
+            int p1x = cx - l;
+            int p1z = cz - l;
+
+            int p2x = cx + l;
+            int p2z = cz + l;
+
+            for (int i = p1x; i <= p2x; i++) {
+                generateChunk(i, p1z, latch);
+            }
+
+            for (int i = p1z; i <= p2z; i++) {
+                generateChunk(p2x, i, latch);
+            }
+
+            for (int i = p2x; i >= p1x; i--) {
+                generateChunk(i, p2z, latch);
+            }
+
+            for (int i = p2z; i >= p1z; i--) {
+                generateChunk(p1x, i, latch);
             }
         }
 
         try {
             latch.await();
-            chunkExecutor.shutdown();
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
     }
 
-    public static ChunkIndex getChunkIndex(int x, int z) {
-        return new ChunkIndex(x, z);
+    private void generateChunk(int xPos, int zPos, CountDownLatch latch) {
+        chunkGeneratorService.execute(() -> {
+            Chunk chunk = generator.generateChunk(xPos, zPos);
+            chunks.put(getChunkIndex(xPos, zPos), chunk);
+            latch.countDown();
+        });
     }
 
-    private ChunkIndexSearch getChunkIndexSearch(int x, int z) {
-        return new ChunkIndexSearch(x, z);
+    private void generateChunkAsync(ChunkIndex index) {
+        Chunk chunk = new Chunk(index.getX(), index.getZ());
+        chunks.put(index, chunk);
+        chunkGeneratorService.execute(() -> {
+            generator.generateChunk(chunk);
+            chunk.setChunkStatus(ChunkStatus.COMPLETE);
+        });
+    }
+
+    public static ChunkIndex getChunkIndex(int x, int z) {
+        return new ChunkIndex(x, z);
     }
 
     public void fill(int x1, int y1, int z1, int x2, int y2, int z2, short block) {
@@ -135,14 +169,11 @@ public class World {
     }
 
     public Chunk getChunk(int x, int z) {
-        return chunks.get(getChunkIndexSearch(x, z));
+        return chunks.get(getChunkIndex(x, z));
     }
 
     public Chunk getChunkFromWorldCoords(int x, int z) {
-        int chunkX = (int) Math.floor(x / (float) Chunk.CHUNK_SIZE);
-        int chunkZ = (int) Math.floor(z / (float) Chunk.CHUNK_SIZE);
-
-        return getChunk(chunkX, chunkZ);
+        return getChunk(Chunk.getChunkXFromWorld(x), Chunk.getChunkZFromWorld(z));
     }
 
     public short getBlock(int x, int y, int z) {
@@ -164,8 +195,12 @@ public class World {
         return chunk.getBlocks()[Chunk.getBlockIndexWithWorldCoords(x, y, z)];
     }
 
-    public Collection<Chunk> getChunks() {
+    public Collection<Chunk> getLoadedChunks() {
         return chunks.values();
+    }
+
+    public int loadedChunksCount() {
+        return chunks.size();
     }
 
     public boolean outOfBounds(int y) {

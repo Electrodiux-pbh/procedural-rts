@@ -241,7 +241,12 @@ public class Loader {
 
         if (usesMipmap) {
             GL30.glGenerateMipmap(GL11.GL_TEXTURE_2D);
-            GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_LINEAR_MIPMAP_LINEAR);
+
+            int mipmapFilter = filter == GL11.GL_NEAREST ? GL11.GL_NEAREST_MIPMAP_NEAREST
+                    : GL11.GL_LINEAR_MIPMAP_LINEAR;
+
+            GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, mipmapFilter);
+            GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, mipmapFilter);
             GL11.glTexParameterf(GL11.GL_TEXTURE_2D, GL14.GL_TEXTURE_LOD_BIAS, 0f);
 
             if (GL.getCapabilities().GL_EXT_texture_filter_anisotropic) {

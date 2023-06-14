@@ -41,7 +41,7 @@ public class Renderer {
     private World world;
     private Vector3 position = new Vector3(), rotation = new Vector3();
 
-    private final int renderDistance = 12;
+    private int renderDistance = 12;
 
     public Renderer(Window window) {
         this.window = window;
@@ -63,8 +63,6 @@ public class Renderer {
             camera.setAspectRatio(width, height);
         });
 
-        cullingCamera.setzFar(150f);
-        cullingCamera.position().set(0, 100, 0);
         loadFrustrumPlanes();
 
         try {
@@ -110,7 +108,9 @@ public class Renderer {
             renderEntities(world);
         }
 
-        renderDebugFrustrum(cullingCamera);
+        renderChunkBoundaries(Math.floorDiv((int) position.x(), Chunk.CHUNK_SIZE),
+                Math.floorDiv((int) position.z(), Chunk.CHUNK_SIZE),
+                Color.YELLOW);
 
         DebugDraw.render(camera);
     }
@@ -120,8 +120,8 @@ public class Renderer {
     private void renderChunks(World world) {
         chunksShader.use();
 
-        int xStart = (int) (camera.position().x() / Chunk.CHUNK_SIZE) - renderDistance;
-        int zStart = (int) (camera.position().z() / Chunk.CHUNK_SIZE) - renderDistance;
+        int xStart = Chunk.getChunkXFromWorld((int) camera.position().x()) - renderDistance;
+        int zStart = Chunk.getChunkZFromWorld((int) camera.position().z()) - renderDistance;
         int xEnd = xStart + renderDistance * 2;
         int zEnd = zStart + renderDistance * 2;
 
@@ -131,7 +131,7 @@ public class Renderer {
             Chunk chunk = entry.getKey();
             ChunkBatch batch = entry.getValue();
 
-            if (!batch.isComputed() && !batch.isBuffered()) {
+            if (batch.isDeleted() || (!batch.isComputed() && !batch.isBuffered())) {
                 continue;
             }
 
@@ -152,8 +152,66 @@ public class Renderer {
         chunksShader.detach();
     }
 
+    private void computeChunkMesh(Chunk chunk, ChunkBatch batch) {
+        chunkMeshService.execute(new Runnable() {
+
+            @Override
+            public void run() {
+                batch.computeMesh(chunk, world);
+
+                computeNextChunk(chunk.getXPos() + 1, chunk.getZPos());
+                computeNextChunk(chunk.getXPos() - 1, chunk.getZPos());
+                computeNextChunk(chunk.getXPos(), chunk.getZPos() + 1);
+                computeNextChunk(chunk.getXPos(), chunk.getZPos() - 1);
+            }
+
+            private void computeNextChunk(int x, int z) {
+                Chunk chunk = world.getChunk(x, z);
+                if (chunk == null)
+                    return;
+
+                ChunkBatch batch = chunkBatches.get(chunk);
+                if (batch == null)
+                    return;
+
+                batch.computeMesh(chunk, world);
+            }
+
+        });
+    }
+
+    private void reloadChunkMeshes() {
+        int xStart = Chunk.getChunkXFromWorld((int) camera.position().x()) - renderDistance;
+        int zStart = Chunk.getChunkZFromWorld((int) camera.position().z()) - renderDistance;
+        int xEnd = xStart + renderDistance * 2;
+        int zEnd = zStart + renderDistance * 2;
+
+        clearChunkBatches();
+
+        for (Chunk chunk : world.getLoadedChunks()) {
+            if (chunk.getChunkStatus() != ChunkStatus.COMPLETE)
+                continue;
+
+            if (chunk.getXPos() >= xStart && chunk.getXPos() <= xEnd && chunk.getZPos() >= zStart
+                    && chunk.getZPos() <= zEnd) {
+
+                ChunkBatch newBatch = new ChunkBatch();
+                chunkBatches.put(chunk, newBatch);
+
+                computeChunkMesh(chunk, newBatch);
+            }
+        }
+    }
+
+    private void clearChunkBatches() {
+        for (ChunkBatch batch : chunkBatches.values()) {
+            batch.clearBufferData();
+        }
+        chunkBatches.clear();
+    }
+
     private void computeNextChunksMeshes(int xStart, int zStart, int xEnd, int zEnd) {
-        for (Chunk chunk : world.getChunks()) {
+        for (Chunk chunk : world.getLoadedChunks()) {
             if (chunk.getChunkStatus() != ChunkStatus.COMPLETE)
                 continue;
 
@@ -166,33 +224,7 @@ public class Renderer {
                     ChunkBatch newBatch = new ChunkBatch();
                     chunkBatches.put(chunk, newBatch);
 
-                    chunkMeshService.execute(new Runnable() {
-
-                        @Override
-                        public void run() {
-                            newBatch.computeMesh(chunk, world);
-
-                            computeNextChunk(chunk.getXPos() + 1, chunk.getZPos());
-                            computeNextChunk(chunk.getXPos() - 1, chunk.getZPos());
-                            computeNextChunk(chunk.getXPos(), chunk.getZPos() + 1);
-                            computeNextChunk(chunk.getXPos(), chunk.getZPos() - 1);
-                        }
-
-                        private void computeNextChunk(int x, int z) {
-                            Chunk chunk = world.getChunk(x, z);
-                            if (chunk == null)
-                                return;
-
-                            ChunkBatch batch = chunkBatches.get(chunk);
-                            if (batch == null)
-                                return;
-
-                            batch.computeMesh(chunk, world);
-                        }
-
-                    });
-
-                    continue;
+                    computeChunkMesh(chunk, newBatch);
                 }
 
             } else if (!(chunk.getXPos() >= xStart - 1 && chunk.getXPos() <= xEnd + 1 && chunk.getZPos() >= zStart - 1
@@ -201,8 +233,6 @@ public class Renderer {
                 if (batch != null) {
                     batch.clearBufferData();
                     chunkBatches.remove(chunk);
-
-                    world.unloadChunk(chunk);
                 }
 
             }
@@ -222,6 +252,10 @@ public class Renderer {
         for (Entity entity : world.getEntities()) {
             Model model = entity.getModel();
             Texture texture = entity.getTexture();
+
+            // DebugDraw.addPoint(entity.getPosition().x(), entity.getPosition().y(),
+            // entity.getPosition().z(),
+            // Color.PINK);
 
             MathUtils.transformMatrix(entity.getPosition(), entity.getRotation(), Vector3.ONE, transform);
             entitiesShader.setMatrix4f("transform", transform);
@@ -257,28 +291,46 @@ public class Renderer {
     // #endregion
 
     private void loadNearChunks() {
-        int xStart = (int) (camera.position().x() / Chunk.CHUNK_SIZE) - renderDistance;
-        int zStart = (int) (camera.position().z() / Chunk.CHUNK_SIZE) - renderDistance;
+        final int distance = renderDistance;
 
-        int xEnd = xStart + renderDistance * 2 + 1;
-        int zEnd = zStart + renderDistance * 2 + 1;
+        final int cx = Chunk.getChunkXFromWorld((int) position.x());
+        final int cz = Chunk.getChunkZFromWorld((int) position.z());
 
         // Unload far chunks
-        // for (Chunk chunk : world.getChunks()) {
-        // if (!(chunk.getXPos() >= xStart && chunk.getXPos() <= xEnd && chunk.getZPos()
-        // >= zStart
-        // && chunk.getZPos() <= zEnd)) {
-        // world.unloadChunk(chunk);
-        // }
-        // }
+        final int xStart = cx - distance;
+        final int zStart = cz - distance;
+        final int xEnd = cx + distance;
+        final int zEnd = cz + distance;
+
+        for (Chunk chunk : world.getLoadedChunks()) {
+            if (!(chunk.getXPos() >= xStart && chunk.getXPos() <= xEnd && chunk.getZPos() >= zStart
+                    && chunk.getZPos() <= zEnd)) {
+                world.unloadChunk(chunk);
+            }
+        }
 
         // Load near chunks
-        for (int x = xStart; x < xEnd; x++) {
-            for (int z = zStart; z < zEnd; z++) {
-                Chunk chunk = world.getChunk(x, z);
-                if (chunk == null || chunk.getChunkStatus() != ChunkStatus.COMPLETE) {
-                    world.loadChunk(x, z);
-                }
+        for (int l = 0; l <= distance; l++) {
+            int p1x = cx - l;
+            int p1z = cz - l;
+
+            int p2x = cx + l;
+            int p2z = cz + l;
+
+            for (int i = p1x; i <= p2x; i++) {
+                world.loadChunk(i, p1z);
+            }
+
+            for (int i = p1z; i <= p2z; i++) {
+                world.loadChunk(p2x, i);
+            }
+
+            for (int i = p2x; i >= p1x; i--) {
+                world.loadChunk(i, p2z);
+            }
+
+            for (int i = p2z; i >= p1z; i--) {
+                world.loadChunk(p1x, i);
             }
         }
     }
@@ -288,16 +340,45 @@ public class Renderer {
     private void update(float deltaTime) {
         position.add(getMoveVector(deltaTime));
         rotation.add(getRotationVector(deltaTime));
-        rotation.x = MathUtils.clamp((float) -Math.PI / 2, rotation.x, (float) Math.PI / 2);
+        rotation.x = MathUtils.clamp((float) (-Math.PI / 2), rotation.x, (float) (Math.PI / 2));
 
         camera.position().set(position);
         camera.rotation().set(rotation);
 
-        cullingCamera.rotation().add(getCullingRotationVector(deltaTime));
-
-        if (Keyboard.isKeyTyped(Keyboard.GLFW_KEY_F1)) {
+        if (Keyboard.isKeyTyped(Keyboard.GLFW_KEY_F2)) {
             DebugDraw.setActive(!DebugDraw.isActive());
         }
+
+        if (Keyboard.isKeyTyped(Keyboard.GLFW_KEY_F6)) {
+            reloadChunkMeshes();
+        }
+
+        if (Keyboard.isKeyTyped(Keyboard.GLFW_KEY_F3)) {
+            System.out.println("Loaded chunks: " + world.loadedChunksCount());
+            System.out.println("Batches: " + chunkBatches.size());
+        }
+
+        if (Keyboard.isKeyTyped(Keyboard.GLFW_KEY_F4)) {
+            world.unloadChunks();
+            clearChunkBatches();
+        }
+
+        if (Keyboard.isKeyTyped(Keyboard.GLFW_KEY_F1)) {
+            System.out.println("x: " + position.x() + " y: " + position.y() + " z: " + position.z());
+        }
+
+        if (Keyboard.isKeyTyped(Keyboard.GLFW_KEY_UP)) {
+            setRenderDistance(renderDistance + 5);
+        }
+
+        if (Keyboard.isKeyTyped(Keyboard.GLFW_KEY_DOWN)) {
+            setRenderDistance(renderDistance - 5);
+        }
+    }
+
+    private void setRenderDistance(int distance) {
+        renderDistance = distance;
+        clearChunkBatches();
     }
 
     private float velocity = 20;
@@ -330,17 +411,6 @@ public class Renderer {
         return move.normalize().mul(deltaTime * velocity);
     }
 
-    private Vector3 getCullingRotationVector(float deltaTime) {
-        Vector3 move = new Vector3();
-
-        if (Keyboard.isKeyPressed(Keyboard.GLFW_KEY_RIGHT))
-            move.add(0, 1, 0);
-        if (Keyboard.isKeyPressed(Keyboard.GLFW_KEY_LEFT))
-            move.add(0, -1, 0);
-
-        return move.normalize().mul(deltaTime * 5);
-    }
-
     private Vector3 getRotationVector(float deltaTime) {
         final float value = 5 * deltaTime;
         return new Vector3((float) Math.toRadians(-Mouse.getDY()) * value,
@@ -351,8 +421,7 @@ public class Renderer {
 
     // #region Frustrum Culling
 
-    private Camera cullingCamera = new Camera();
-    private Vector4f[] frustumPlanes = new Vector4f[4];
+    private Vector4f[] frustumPlanes = new Vector4f[6];
 
     private void updateFrustumPlanes(Matrix4f viewProjectionMatrix) {
         // Right plane
@@ -382,6 +451,20 @@ public class Renderer {
                 viewProjectionMatrix.m13() - viewProjectionMatrix.m11(),
                 viewProjectionMatrix.m23() - viewProjectionMatrix.m21(),
                 viewProjectionMatrix.m33() - viewProjectionMatrix.m31()).normalize();
+
+        // Near plane
+        frustumPlanes[4].set(
+                viewProjectionMatrix.m03() + viewProjectionMatrix.m02(),
+                viewProjectionMatrix.m13() + viewProjectionMatrix.m12(),
+                viewProjectionMatrix.m23() + viewProjectionMatrix.m22(),
+                viewProjectionMatrix.m33() + viewProjectionMatrix.m32()).normalize();
+
+        // Far plane
+        frustumPlanes[5].set(
+                viewProjectionMatrix.m03() - viewProjectionMatrix.m02(),
+                viewProjectionMatrix.m13() - viewProjectionMatrix.m12(),
+                viewProjectionMatrix.m23() - viewProjectionMatrix.m22(),
+                viewProjectionMatrix.m33() - viewProjectionMatrix.m32()).normalize();
     }
 
     private boolean isChunkInFrustum(int chunkX, int chunkZ) {
@@ -389,7 +472,7 @@ public class Renderer {
             Vector4f plane = frustumPlanes[i];
 
             float d = plane.x * chunkX + plane.z * chunkZ + plane.w;
-            if (d <= -Chunk.CHUNK_SIZE || d <= -Chunk.CHUNK_HEIGHT) {
+            if (d <= -Chunk.CHUNK_SIZE) {
                 return false;
             }
         }
@@ -400,8 +483,11 @@ public class Renderer {
         for (int i = 0; i < frustumPlanes.length; i++) {
             frustumPlanes[i] = new Vector4f();
         }
+    }
 
-        ndcCorners = new Vector4f[8];
+    private static Vector4f[] ndcCorners = new Vector4f[8];
+
+    static {
         ndcCorners[0] = new Vector4f(-1.0f, -1.0f, -1.0f, 1.0f);
         ndcCorners[1] = new Vector4f(-1.0f, -1.0f, 1.0f, 1.0f);
         ndcCorners[2] = new Vector4f(-1.0f, 1.0f, -1.0f, 1.0f);
@@ -412,8 +498,7 @@ public class Renderer {
         ndcCorners[7] = new Vector4f(1.0f, 1.0f, 1.0f, 1.0f);
     }
 
-    private Vector4f[] ndcCorners = new Vector4f[8];
-
+    @SuppressWarnings("unused")
     private void renderDebugFrustrum(Camera camera) {
         if (!DebugDraw.isActive())
             return;
@@ -455,6 +540,33 @@ public class Renderer {
     }
 
     // #endregion
+
+    private void renderChunkBoundaries(int chunkX, int chunkZ, Color color) {
+        if (!DebugDraw.isActive())
+            return;
+
+        int xStart = chunkX * Chunk.CHUNK_SIZE;
+        int xEnd = xStart + Chunk.CHUNK_SIZE;
+        int zStart = chunkZ * Chunk.CHUNK_SIZE;
+        int zEnd = zStart + Chunk.CHUNK_SIZE;
+        int yStart = 0;
+        int yEnd = Chunk.CHUNK_HEIGHT;
+
+        DebugDraw.addLine(xStart, yStart, zStart, xStart, yEnd, zStart, color);
+        DebugDraw.addLine(xEnd, yStart, zStart, xEnd, yEnd, zStart, color);
+        DebugDraw.addLine(xEnd, yStart, zEnd, xEnd, yEnd, zEnd, color);
+        DebugDraw.addLine(xStart, yStart, zEnd, xStart, yEnd, zEnd, color);
+
+        DebugDraw.addLine(xStart, yStart, zStart, xEnd, yStart, zStart, color);
+        DebugDraw.addLine(xEnd, yStart, zStart, xEnd, yStart, zEnd, color);
+        DebugDraw.addLine(xEnd, yStart, zEnd, xStart, yStart, zEnd, color);
+        DebugDraw.addLine(xStart, yStart, zEnd, xStart, yStart, zStart, color);
+
+        DebugDraw.addLine(xStart, yEnd, zStart, xEnd, yEnd, zStart, color);
+        DebugDraw.addLine(xEnd, yEnd, zStart, xEnd, yEnd, zEnd, color);
+        DebugDraw.addLine(xEnd, yEnd, zEnd, xStart, yEnd, zEnd, color);
+        DebugDraw.addLine(xStart, yEnd, zEnd, xStart, yEnd, zStart, color);
+    }
 
     public void run() {
         Keyboard.configureKeyboard(window);

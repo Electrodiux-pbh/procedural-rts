@@ -28,8 +28,12 @@ public class ChunkIndex {
 
     @Override
     public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
         if (obj instanceof ChunkIndex idx) {
-            return idx.x == x && idx.z == z;
+            return idx.x == this.x && idx.z == this.z;
         }
         return false;
     }

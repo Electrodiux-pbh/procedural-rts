@@ -61,9 +61,7 @@ public class WorldGenerator extends TerrainGenerator {
         return structureRegistry;
     }
 
-    public Chunk generateChunk(int xPos, int zPos) {
-        Chunk chunk = new Chunk(xPos, zPos);
-
+    public Chunk generateChunk(Chunk chunk) {
         heightMaps(chunk);
         chunk.setChunkStatus(ChunkStatus.HEIGHTMAPS);
 
@@ -74,7 +72,7 @@ public class WorldGenerator extends TerrainGenerator {
         stoneBlobs(chunk);
         lava(chunk);
         decorators(chunk);
-        // structures(chunk);
+        structures(chunk);
         fill(chunk, 0, 0, 0, CHUNK_SIZE, 0, CHUNK_SIZE, Blocks.STONE);
 
         chunk.setChunkStatus(ChunkStatus.COMPLETE);

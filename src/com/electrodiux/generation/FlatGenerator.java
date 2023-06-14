@@ -12,9 +12,7 @@ public class FlatGenerator extends TerrainGenerator {
     }
 
     @Override
-    public Chunk generateChunk(int xPos, int zPos) {
-        Chunk chunk = new Chunk(xPos, zPos);
-
+    public Chunk generateChunk(Chunk chunk) {
         // for (int x = 0; x < Chunk.CHUNK_SIZE; x++) {
         // for (int z = 0; z < Chunk.CHUNK_SIZE; z++) {
         // if ((x + z) % 2 == 0) {

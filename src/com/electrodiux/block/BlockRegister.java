@@ -11,7 +11,6 @@ import java.util.Objects;
 
 import org.lwjgl.opengl.GL11;
 
-import com.electrodiux.graphics.Loader;
 import com.electrodiux.graphics.textures.Sprite;
 import com.electrodiux.graphics.textures.Texture;
 import com.electrodiux.graphics.textures.TextureAtlas;
@@ -48,7 +47,7 @@ public class BlockRegister {
     }
 
     public static void endRegistry() {
-        atlasTexture = textureAtlas.createAtlasTexture(GL11.GL_NEAREST, true, Loader.DEFAULT_ANISOTROPIC_EXT);
+        atlasTexture = textureAtlas.createAtlasTexture(GL11.GL_NEAREST, true, 4);
         List<Sprite> sprites = textureAtlas.getTextureSprites(atlasTexture);
 
         for (BlockDefinitionRegister register : blockRegisters) {

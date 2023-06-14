@@ -31,11 +31,11 @@ public class Main {
 
         World world = new World(seed);
         world.setGenerator(new WorldGenerator(world));
-        System.out.println("Start generating:");
-        long startGenerating = System.currentTimeMillis();
-        world.generate(16);
-        System.out.println("Time to generate: " + (System.currentTimeMillis() -
-                startGenerating) + "ms");
+        // System.out.println("Start generating:");
+        // long startGenerating = System.currentTimeMillis();
+        // world.generate(16);
+        // System.out.println("Time to generate: " + (System.currentTimeMillis() -
+        // startGenerating) + "ms");
 
         entity = new Entity(UUID.randomUUID(), new Properties().texture("blocks/stone.png").model("player.obj"));
         entity.getPosition().setY(100);

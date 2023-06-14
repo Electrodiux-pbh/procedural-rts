@@ -25,6 +25,10 @@ public class Texture {
 		GL11.glBindTexture(GL11.GL_TEXTURE_2D, 0);
 	}
 
+	public void delete() {
+		GL11.glDeleteTextures(textureId);
+	}
+
 	public int getTextureId() {
 		return textureId;
 	}

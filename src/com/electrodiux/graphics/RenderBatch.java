@@ -6,14 +6,14 @@ import org.lwjgl.opengl.GL30;
 import com.electrodiux.graphics.textures.Texture;
 
 public class RenderBatch {
-    private final int POS_SIZE = 3;
-    private final int TEXTURE_SIZE = 2;
+    private static final int POS_SIZE = 3;
+    private static final int TEXTURE_SIZE = 2;
 
-    private final int POS_OFFSET = 0;
-    private final int TEXTURE_OFFSET = POS_OFFSET + POS_SIZE * Float.BYTES;
+    private static final int POS_OFFSET = 0;
+    private static final int TEXTURE_OFFSET = POS_OFFSET + POS_SIZE * Float.BYTES;
 
-    private final int VERTEX_SIZE = 5;
-    private final int VERTEX_SIZE_BYTES = VERTEX_SIZE * Float.BYTES;
+    private static final int VERTEX_SIZE = 5;
+    private static final int VERTEX_SIZE_BYTES = VERTEX_SIZE * Float.BYTES;
 
     private int numSprites;
     private boolean hasRoom;
@@ -113,48 +113,33 @@ public class RenderBatch {
     }
 
     private void loadVertexProperties(Face face, int index) {
-        // Find offset within array (4 vertices per sprite)
         int offset = index * 4 * VERTEX_SIZE;
 
-        // Add vertices with the appropriate properties
         for (int i = 0; i < 4; i++) {
-            // Load position
-            vertices[offset + 0] = face.vertices[i * 3 + 0];
-            vertices[offset + 1] = face.vertices[i * 3 + 1];
-            vertices[offset + 2] = face.vertices[i * 3 + 2];
-
-            // Load color
-            vertices[offset + 3] = face.texCoords[i * 2 + 0];
-            vertices[offset + 4] = face.texCoords[i * 2 + 1];
-
-            offset += VERTEX_SIZE;
+            int vertexOffset = offset + i * VERTEX_SIZE;
+            System.arraycopy(face.vertices, i * 3, vertices, vertexOffset, POS_SIZE);
+            System.arraycopy(face.texCoords, i * 2, vertices, vertexOffset + POS_SIZE, TEXTURE_SIZE);
         }
     }
 
     private int[] generateIndices() {
-        // VERTEX_SIZE indices per quad (3 per triangle)
         int[] elements = new int[6 * maxBatchSize];
+
         for (int i = 0; i < maxBatchSize; i++) {
-            loadElementIndices(elements, i);
+            int offset = 4 * i;
+
+            // Triangle 1
+            elements[6 * i] = offset + 3;
+            elements[6 * i + 1] = offset + 2;
+            elements[6 * i + 2] = offset;
+
+            // Triangle 2
+            elements[6 * i + 3] = offset;
+            elements[6 * i + 4] = offset + 2;
+            elements[6 * i + 5] = offset + 1;
         }
 
         return elements;
-    }
-
-    private void loadElementIndices(int[] elements, int index) {
-        int offsetArrayIndex = 6 * index;
-        int offset = 4 * index;
-
-        // 3, 2, 0, 0, 2, 1 7, VERTEX_SIZE, 4, 4, VERTEX_SIZE, 5
-        // Triangle 1
-        elements[offsetArrayIndex] = offset + 3;
-        elements[offsetArrayIndex + 1] = offset + 2;
-        elements[offsetArrayIndex + 2] = offset + 0;
-
-        // Triangle 2
-        elements[offsetArrayIndex + 3] = offset + 0;
-        elements[offsetArrayIndex + 4] = offset + 2;
-        elements[offsetArrayIndex + 5] = offset + 1;
     }
 
     public boolean hasRoom() {
