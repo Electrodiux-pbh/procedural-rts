@@ -33,13 +33,14 @@ public class WorldGenerator extends TerrainGenerator {
 
         permutation = new Permutation(Permutation.calculatePermutedSeed(seed, "permutation"));
 
-        noiseGenerator.setClampValues(-1, 1);
-        int size = 500 * 5;
+        // noiseGenerator.setClampValues(-1, 1);
+        // int size = 500 * 5;
 
-        float[] continentalnessNoise = noiseGenerator.getNoise2D(size, size, -size / 2, -size / 2,
-                1, 700, 5, 2.35f, 0.5f);
+        // float[] continentalnessNoise = noiseGenerator.getNoise2D(size, size, -size /
+        // 2, -size / 2,
+        // 1, 700, 5, 2.35f, 0.5f);
 
-        createNoiseImage(continentalnessNoise, size, size, "continentalness");
+        // createNoiseImage(continentalnessNoise, size, size, "continentalness");
     }
 
     private void createNoiseImage(float[] noise, int width, int height, String name) {
@@ -390,15 +391,20 @@ public class WorldGenerator extends TerrainGenerator {
                 if (block == Blocks.GRASS_BLOCK) {
                     if (trees[idx] > 2.3f) {
                         setBlock(chunk, x, y, z, Blocks.DIRT);
-                        columFill(chunk, x, z, y + 1, y + 4, Blocks.LOG);
-                        fill(chunk, x - 2, y + 5, z - 2, x + 2, y + 6, z + 2, Blocks.LEAVE);
-                        fill(chunk, x - 1, y + 7, z - 1, x + 1, y + 7, z + 1, Blocks.LEAVE);
 
-                        setBlock(chunk, x, y + 8, z, Blocks.LEAVE);
-                        setBlock(chunk, x - 1, y + 8, z, Blocks.LEAVE);
-                        setBlock(chunk, x + 1, y + 8, z, Blocks.LEAVE);
-                        setBlock(chunk, x, y + 8, z - 1, Blocks.LEAVE);
-                        setBlock(chunk, x, y + 8, z + 1, Blocks.LEAVE);
+                        final int height = permutation.permutationValue(x, y, z, 2, 4);
+
+                        columFill(chunk, x, z, y + 1, y + height + 1, Blocks.LOG);
+                        replace(chunk, x - 2, y + height + 1, z - 2, x + 2, y + height + 2, z + 2, Blocks.AIR,
+                                Blocks.LEAVE);
+                        replace(chunk, x - 1, y + height + 2, z - 1, x + 1, y + height + 3, z + 1, Blocks.AIR,
+                                Blocks.LEAVE);
+
+                        setBlock(chunk, x, y + height + 4, z, Blocks.LEAVE);
+                        setBlock(chunk, x - 1, y + height + 4, z, Blocks.LEAVE);
+                        setBlock(chunk, x + 1, y + height + 4, z, Blocks.LEAVE);
+                        setBlock(chunk, x, y + height + 4, z - 1, Blocks.LEAVE);
+                        setBlock(chunk, x, y + height + 4, z + 1, Blocks.LEAVE);
                     } else if (trees[idx] < -3) {
                         setBlock(chunk, x, y + 1, z, Blocks.RED_TULIP);
                     } else if (trees[idx] > 2.1f && trees[idx] < 2.6f) {

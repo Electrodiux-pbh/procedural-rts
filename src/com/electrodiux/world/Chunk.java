@@ -145,6 +145,9 @@ public class Chunk implements Externalizable {
         return getBlockIndex(Math.floorMod(x, Chunk.CHUNK_SIZE), y, Math.floorMod(z, Chunk.CHUNK_SIZE));
     }
 
+    public void unload() {
+    }
+
     @Override
     public int hashCode() {
         final int prime = 31;

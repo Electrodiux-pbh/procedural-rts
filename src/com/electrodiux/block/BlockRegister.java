@@ -48,7 +48,7 @@ public class BlockRegister {
 
     public static void endRegistry() {
         atlasTexture = textureAtlas.createAtlasTexture(GL11.GL_NEAREST, true, 4);
-        List<Sprite> sprites = textureAtlas.getTextureSprites(atlasTexture);
+        List<Sprite> sprites = textureAtlas.getTextureSprites();
 
         for (BlockDefinitionRegister register : blockRegisters) {
             register.textures = new Sprite[register.textureAtlasIndices.length];

@@ -66,13 +66,21 @@ public class BufferedImage {
     }
 
     public void drawImage(int xPos, int yPos, int width, int height, BufferedImage img) {
-        for (int x = 0; x < img.getWidth(); x++) {
-            if (x >= width)
+        for (int x = 0; x < width; x++) {
+            final int px = x + xPos;
+            if (px < 0 || px >= this.width)
                 continue;
-            for (int y = 0; y < img.getHeight(); y++) {
-                if (y >= height)
+
+            for (int y = 0; y < height; y++) {
+                final int py = y + yPos;
+
+                if (py < 0 || py >= this.height)
                     continue;
-                this.setColor(x + xPos, y + yPos, img.getColor(x, y));
+
+                int color = img.getColor((int) ((float) x / width * img.getWidth()),
+                        (int) ((float) y / height * img.getHeight()));
+
+                this.setColor(px, py, color);
             }
         }
     }
@@ -105,6 +113,20 @@ public class BufferedImage {
         data.rewind();
     }
 
+    public BufferedImage createResized(int width, int height) {
+        BufferedImage resized = new BufferedImage(width, height, this.numChannels);
+
+        for (int x = 0; x < resized.getWidth(); x++) {
+            for (int y = 0; y < resized.getHeight(); y++) {
+                int color = getColor((int) ((float) x / resized.getWidth() * this.getWidth()),
+                        (int) ((float) y / resized.getHeight() * this.getHeight()));
+                resized.setColor(x, y, color);
+            }
+        }
+
+        return resized;
+    }
+
     public ByteBuffer getData() {
         return data;
     }
@@ -117,7 +139,7 @@ public class BufferedImage {
         return height;
     }
 
-    public int getNumChannels() {
+    public int getChannels() {
         return numChannels;
     }
 
@@ -131,8 +153,8 @@ public class BufferedImage {
     }
 
     public static void saveImage(BufferedImage image, String path) {
-        STBImageWrite.stbi_write_png(path, image.getWidth(), image.getHeight(), image.getNumChannels(),
-                image.getData(), image.getWidth() * image.getNumChannels() * Byte.BYTES);
+        STBImageWrite.stbi_write_png(path, image.getWidth(), image.getHeight(), image.getChannels(),
+                image.getData(), image.getWidth() * image.getChannels() * Byte.BYTES);
     }
 
 }

@@ -2,6 +2,7 @@ package com.electrodiux.graphics;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ExecutorService;
@@ -127,11 +128,19 @@ public class Renderer {
 
         computeNextChunksMeshes(xStart, zStart, xEnd, zEnd);
 
-        for (Entry<Chunk, ChunkBatch> entry : chunkBatches.entrySet()) {
+        Iterator<Entry<Chunk, ChunkBatch>> iter = chunkBatches.entrySet().iterator();
+
+        while (iter.hasNext()) {
+            Entry<Chunk, ChunkBatch> entry = iter.next();
+
             Chunk chunk = entry.getKey();
             ChunkBatch batch = entry.getValue();
 
-            if (batch.isDeleted() || (!batch.isComputed() && !batch.isBuffered())) {
+            if (batch.isDeleted()) {
+                continue;
+            }
+
+            if (!batch.isBuffered() && !batch.isComputed()) {
                 continue;
             }
 
@@ -140,13 +149,19 @@ public class Renderer {
 
             boolean inFrustrum = isChunkInFrustum(chunk.getBlockX(), chunk.getBlockZ());
 
-            if (inRenderDistance && inFrustrum) {
+            if (inRenderDistance) {
+                if (inFrustrum) {
+                    if (!batch.isBuffered()) {
+                        batch.bufferData();
+                    }
 
-                if (!batch.isBuffered()) {
-                    batch.bufferData();
+                    batch.render(BlockRegister.getAtlasTexture());
                 }
+            } else if (!(chunk.getXPos() >= xStart - 1 && chunk.getXPos() <= xEnd + 1 && chunk.getZPos() >= zStart - 1
+                    && chunk.getZPos() <= zEnd + 1)) {
 
-                batch.render(BlockRegister.getAtlasTexture());
+                batch.clearBufferData();
+                iter.remove();
             }
         }
         chunksShader.detach();
@@ -225,14 +240,6 @@ public class Renderer {
                     chunkBatches.put(chunk, newBatch);
 
                     computeChunkMesh(chunk, newBatch);
-                }
-
-            } else if (!(chunk.getXPos() >= xStart - 1 && chunk.getXPos() <= xEnd + 1 && chunk.getZPos() >= zStart - 1
-                    && chunk.getZPos() <= zEnd + 1)) {
-
-                if (batch != null) {
-                    batch.clearBufferData();
-                    chunkBatches.remove(chunk);
                 }
 
             }
@@ -378,6 +385,7 @@ public class Renderer {
 
     private void setRenderDistance(int distance) {
         renderDistance = distance;
+        camera.setzFar(distance * Chunk.CHUNK_SIZE * 1.5f);
         clearChunkBatches();
     }
 

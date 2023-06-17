@@ -100,6 +100,25 @@ public abstract class TerrainGenerator {
         }
     }
 
+    protected void replace(Chunk chunk, int x1, int y1, int z1, int x2, int y2, int z2, short toReplace,
+            short... block) {
+        short[] blocks = chunk.getBlocks();
+        for (int x = x1; x <= x2; x++) {
+            for (int z = z1; z <= z2; z++) {
+                for (int y = y1; y <= y2; y++) {
+                    if (outOfBounds(x, y, z))
+                        continue;
+
+                    int idx = Chunk.getBlockIndex(x, y, z);
+
+                    if (blocks[idx] == toReplace) {
+                        blocks[idx] = blockShuffle(x, y, z, blockShufflePermutation, block);
+                    }
+                }
+            }
+        }
+    }
+
     protected void pyramid(Chunk chunk, int x1, int y1, int z1, int x2, int y2, int z2, short... block) {
         short[] blocks = chunk.getBlocks();
         yiteration: for (int y = y1; y <= y2; y++) {

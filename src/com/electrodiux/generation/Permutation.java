@@ -61,4 +61,23 @@ public class Permutation {
         return (float) val / (float) HALF_PERMUTATION_SIZE;
     }
 
+    public float permutationValue(int x, int y, int z, int w) {
+        int xi = (int) Math.floor(x) & PERMUTATION_BITMASK;
+        int yi = (int) Math.floor(y) & PERMUTATION_BITMASK;
+        int zi = (int) Math.floor(z) & PERMUTATION_BITMASK;
+        int wi = (int) Math.floor(w) & PERMUTATION_BITMASK;
+
+        int val = perm[perm[perm[perm[xi] + yi] + zi] + wi];
+
+        return (float) val / (float) HALF_PERMUTATION_SIZE;
+    }
+
+    public float permutationValue(int x, int y, int z, float min, float max) {
+        return (Math.round(permutationValue(x, y, z) * (max - min))) + min;
+    }
+
+    public int permutationValue(int x, int y, int z, int min, int max) {
+        return (int) (Math.round(permutationValue(x, y, z) * (max - min))) + min;
+    }
+
 }

@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.joml.Matrix4f;
 import org.joml.Vector4f;
+import org.lwjgl.opengl.GL13;
 
 import com.electrodiux.block.BlockDefinition;
 import com.electrodiux.block.BlockRegister;
@@ -18,7 +19,7 @@ import com.electrodiux.world.World;
 
 public class ChunkBatch {
 
-    private static final int MAX_BATCH_SIZE = 1024 * 6;
+    private static final int MAX_BATCH_SIZE = 1000;
 
     private List<RenderBatch> batches;
     private int facesCount = 0;
@@ -34,14 +35,24 @@ public class ChunkBatch {
         if (!buffered)
             return;
 
+        GL13.glActiveTexture(GL13.GL_TEXTURE0);
+
+        if (texture != null)
+            texture.bind();
+
         for (RenderBatch batch : batches) {
             batch.render(texture);
         }
+
+        if (texture != null)
+            texture.unbind();
     }
 
     public synchronized void computeMesh(Chunk chunk, World world) {
         facesCount = 0;
         isComputed = false;
+
+        resetBatches();
 
         for (int x = 0; x < Chunk.CHUNK_SIZE; x++) {
             for (int z = 0; z < Chunk.CHUNK_SIZE; z++) {
@@ -61,6 +72,12 @@ public class ChunkBatch {
 
         buffered = false;
         isComputed = true;
+    }
+
+    private void resetBatches() {
+        for (RenderBatch batch : batches) {
+            batch.resetBatch();
+        }
     }
 
     private Matrix4f transformMatrix = new Matrix4f();
@@ -123,11 +140,13 @@ public class ChunkBatch {
                 break;
             }
         }
+
         if (!added) {
             RenderBatch newBatch = new RenderBatch(MAX_BATCH_SIZE);
-            batches.add(newBatch);
             newBatch.addFace(face);
+            batches.add(newBatch);
         }
+
         facesCount++;
     }
 
@@ -147,35 +166,27 @@ public class ChunkBatch {
     }
 
     private float[] getVertices(float[] vertices) {
-        float[] v = new float[vertices.length];
         Vector4f vec = new Vector4f();
 
         for (int i = 0; i < vertices.length; i += 3) {
             vec.set(vertices[i + 0], vertices[i + 1], vertices[i + 2], 1);
             vec.mul(transformMatrix);
 
-            v[i + 0] = vec.x;
-            v[i + 1] = vec.y;
-            v[i + 2] = vec.z;
+            vertices[i + 0] = vec.x;
+            vertices[i + 1] = vec.y;
+            vertices[i + 2] = vec.z;
         }
-        return v;
+
+        return vertices;
     }
 
     public synchronized void bufferData() {
-        buffered = false;
-
         Iterator<RenderBatch> iter = batches.iterator();
+        int numBatches = (int) Math.ceilDiv(facesCount, MAX_BATCH_SIZE);
 
-        double divisionResult = (double) facesCount / MAX_BATCH_SIZE;
-        int numBatches = (int) Math.floor(divisionResult);
-        if (numBatches < divisionResult) {
-            numBatches++;
-        }
-
-        int i = 0;
-        while (iter.hasNext()) {
+        for (int i = 0; iter.hasNext(); i++) {
             RenderBatch batch = iter.next();
-            if (i >= numBatches) {
+            if (i > numBatches) {
                 batch.clearBufferData();
                 iter.remove();
                 continue;
@@ -186,7 +197,6 @@ public class ChunkBatch {
             }
 
             batch.bufferData();
-            i++;
         }
 
         buffered = true;
@@ -219,40 +229,40 @@ public class ChunkBatch {
 
     private static final float[] cubeVertices = {
             // Front face
-            0.5f, -0.5f, 0.5f, // Bottom-right
-            -0.5f, -0.5f, 0.5f, // Bottom-left
-            -0.5f, 0.5f, 0.5f, // Top-left
-            0.5f, 0.5f, 0.5f, // Top-right
+            1.0f, 0.0f, 1.0f, // Bottom-right
+            0.0f, 0.0f, 1.0f, // Bottom-left
+            0.0f, 1.0f, 1.0f, // Top-left
+            1.0f, 1.0f, 1.0f, // Top-right
 
             // Back face
-            -0.5f, -0.5f, -0.5f, // Bottom-left
-            0.5f, -0.5f, -0.5f, // Bottom-right
-            0.5f, 0.5f, -0.5f, // Top-right
-            -0.5f, 0.5f, -0.5f, // Top-left
+            0.0f, 0.0f, 0.0f, // Bottom-left
+            1.0f, 0.0f, 0.0f, // Bottom-right
+            1.0f, 1.0f, 0.0f, // Top-right
+            0.0f, 1.0f, 0.0f, // Top-left
 
             // Left face
-            -0.5f, -0.5f, 0.5f, // Bottom-back
-            -0.5f, -0.5f, -0.5f, // Bottom-front
-            -0.5f, 0.5f, -0.5f, // Top-front
-            -0.5f, 0.5f, 0.5f, // Top-back
+            0.0f, 0.0f, 1.0f, // Bottom-back
+            0.0f, 0.0f, 0.0f, // Bottom-front
+            0.0f, 1.0f, 0.0f, // Top-front
+            0.0f, 1.0f, 1.0f, // Top-back
 
             // Right face
-            0.5f, -0.5f, -0.5f, // Bottom-front
-            0.5f, -0.5f, 0.5f, // Bottom-back
-            0.5f, 0.5f, 0.5f, // Top-back
-            0.5f, 0.5f, -0.5f, // Top-front
+            1.0f, 0.0f, 0.0f, // Bottom-front
+            1.0f, 0.0f, 1.0f, // Bottom-back
+            1.0f, 1.0f, 1.0f, // Top-back
+            1.0f, 1.0f, 0.0f, // Top-front
 
             // Top face
-            0.5f, 0.5f, 0.5f, // Front-right
-            -0.5f, 0.5f, 0.5f, // Front-left
-            -0.5f, 0.5f, -0.5f, // Back-left
-            0.5f, 0.5f, -0.5f, // Back-right
+            1.0f, 1.0f, 1.0f, // Front-right
+            0.0f, 1.0f, 1.0f, // Front-left
+            0.0f, 1.0f, 0.0f, // Back-left
+            1.0f, 1.0f, 0.0f, // Back-right
 
             // Bottom face
-            0.5f, -0.5f, -0.5f, // Back-right
-            -0.5f, -0.5f, -0.5f, // Back-left
-            -0.5f, -0.5f, 0.5f, // Front-left
-            0.5f, -0.5f, 0.5f, // Front-right
+            1.0f, 0.0f, 0.0f, // Back-right
+            0.0f, 0.0f, 0.0f, // Back-left
+            0.0f, 0.0f, 1.0f, // Front-left
+            1.0f, 0.0f, 1.0f, // Front-right
     };
 
     // #endregion

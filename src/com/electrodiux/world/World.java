@@ -4,6 +4,7 @@ import static com.electrodiux.world.Chunk.CHUNK_HEIGHT;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
@@ -51,14 +52,22 @@ public class World {
     }
 
     public void unloadChunk(int x, int z) {
-        chunks.remove(getChunkIndex(x, z));
+        Chunk chunk = chunks.remove(getChunkIndex(x, z));
+        if (chunk != null) {
+            chunk.unload();
+        }
     }
 
     public void unloadChunk(Chunk chunk) {
+        Objects.requireNonNull(chunk, "The chunk cannot be null!");
         chunks.remove(getChunkIndex(chunk.getXPos(), chunk.getZPos()));
+        chunk.unload();
     }
 
     public void unloadChunks() {
+        for (Chunk chunk : chunks.values()) {
+            chunk.unload();
+        }
         chunks.clear();
     }
 

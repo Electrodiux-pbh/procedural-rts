@@ -233,9 +233,7 @@ public class Loader {
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, filter);
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, filter);
 
-        int type = channels == 3 ? GL11.GL_RGB : channels == 4 ? GL11.GL_RGBA : -1;
-        if (type == -1)
-            throw new IllegalArgumentException("Unknown number of channels '" + channels + "'");
+        int type = getTextureType(channels);
         GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, type, imgWidth, imgHeight, 0, type, GL11.GL_UNSIGNED_BYTE,
                 image);
 
@@ -262,7 +260,42 @@ public class Loader {
 
         textures.add(textureId);
 
-        return new Texture(textureId, imgWidth, imgHeight);
+        return new Texture(textureId);
+    }
+
+    public static Texture loadTexture(BufferedImage[] images, int filter, int wrap) {
+        int textureId = GL11.glGenTextures();
+
+        GL11.glBindTexture(GL11.GL_TEXTURE_2D, textureId);
+
+        GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_S, wrap);
+        GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, wrap);
+
+        GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, filter);
+        GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, filter);
+
+        for (int i = 0; i < images.length; i++) {
+            BufferedImage image = images[i];
+
+            ByteBuffer imgBuff = image.getData();
+
+            int type = getTextureType(image.getChannels());
+            GL11.glTexImage2D(GL11.GL_TEXTURE_2D, i, type, image.getWidth(), image.getHeight(), 0, type,
+                    GL11.GL_UNSIGNED_BYTE, imgBuff);
+        }
+
+        GL11.glBindTexture(GL11.GL_TEXTURE_2D, 0);
+
+        textures.add(textureId);
+
+        return new Texture(textureId);
+    }
+
+    private static int getTextureType(int channels) {
+        int type = channels == 3 ? GL11.GL_RGB : channels == 4 ? GL11.GL_RGBA : -1;
+        if (type == -1)
+            throw new IllegalArgumentException("Unknown number of channels '" + channels + "'");
+        return type;
     }
 
     public static Texture loadTexture(byte[] imageBytes, int filter, boolean usesMipmap, float anisotropicExt)
@@ -295,7 +328,7 @@ public class Loader {
     }
 
     public static Texture loadTexture(BufferedImage image, int filter, boolean usesMipmap, float anisotropicExt) {
-        return loadTexture(image.getData(), image.getWidth(), image.getHeight(), image.getNumChannels(), filter,
+        return loadTexture(image.getData(), image.getWidth(), image.getHeight(), image.getChannels(), filter,
                 usesMipmap, anisotropicExt);
     }
 

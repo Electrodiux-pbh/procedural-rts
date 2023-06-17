@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.lwjgl.BufferUtils;
+import org.lwjgl.opengl.GL30;
 import org.lwjgl.stb.STBImage;
 
 import com.electrodiux.graphics.Loader;
@@ -27,26 +28,37 @@ public class TextureAtlas {
     }
 
     public Texture createAtlasTexture(int filter, boolean usesMipMaps, float anisotropicExt) {
-        BufferedImage image = createBufferedAtlas();
-        BufferedImage.saveImage(image, "atlas.png");
+        int decreicingFactor = 2;
+        int steps = textureWidth / decreicingFactor;
 
-        Texture texture = Loader.loadTexture(image, filter, usesMipMaps, anisotropicExt);
+        BufferedImage[] images = new BufferedImage[steps];
+        for (int i = 0; i < steps; i++) {
+            images[i] = createBufferedAtlas(textureWidth - decreicingFactor * i, textureHeight - decreicingFactor * i);
+        }
+
+        Texture texture = Loader.loadTexture(images, filter, GL30.GL_CLAMP_TO_EDGE);
 
         return texture;
     }
 
-    public List<Sprite> getTextureSprites(Texture texture) {
+    public List<Sprite> getTextureSprites() {
+        final int atlasCols = (int) Math.ceil(Math.sqrt(textures.size()));
+        final int atlasRows = (int) Math.ceil(textures.size() / (float) atlasCols);
+
+        final int width = atlasCols * textureWidth;
+        final int height = atlasRows * textureHeight;
+
         List<Sprite> sprites = new ArrayList<>();
         int currentX = 0;
-        int currentY = texture.getHeight() - textureHeight;
+        int currentY = height - textureHeight;
 
         final float offset = 0.1f;
 
         for (int i = 0; i < textures.size(); i++) {
-            float topY = (currentY + textureHeight - offset) / (float) texture.getHeight();
-            float rightX = (currentX + textureWidth - offset) / (float) texture.getWidth();
-            float leftX = (currentX + offset) / (float) texture.getWidth();
-            float bottomY = (currentY + offset) / (float) texture.getHeight();
+            float topY = (currentY + textureHeight - offset) / (float) height;
+            float rightX = (currentX + textureWidth - offset) / (float) width;
+            float leftX = (currentX + offset) / (float) width;
+            float bottomY = (currentY + offset) / (float) height;
 
             float[] texCoords = {
                     rightX, bottomY,
@@ -59,7 +71,7 @@ public class TextureAtlas {
             sprites.add(sprite);
 
             currentX += textureWidth;
-            if (currentX >= texture.getWidth()) {
+            if (currentX >= width) {
                 currentX = 0;
                 currentY -= textureHeight;
             }
@@ -68,19 +80,19 @@ public class TextureAtlas {
         return sprites;
     }
 
-    public BufferedImage createBufferedAtlas() {
-        int atlasRows = (int) Math.ceil(Math.sqrt(textures.size()));
-        int atlasCols = (int) Math.ceil(textures.size() / (float) atlasRows);
+    public BufferedImage createBufferedAtlas(int spriteWidth, int spriteHeight) {
+        final int atlasCols = (int) Math.ceil(Math.sqrt(textures.size()));
+        final int atlasRows = (int) Math.ceil(textures.size() / (float) atlasCols);
 
-        BufferedImage atlas = new BufferedImage(atlasRows * textureWidth, atlasCols * textureHeight, 4);
+        BufferedImage atlas = new BufferedImage(atlasCols * spriteWidth, atlasRows * spriteHeight, 4);
 
         for (AtlasTexture texture : textures.values()) {
             BufferedImage image = texture.image;
 
-            int x = texture.index % atlasRows;
-            int y = texture.index / atlasRows;
+            int x = texture.index % atlasCols;
+            int y = texture.index / atlasCols;
 
-            atlas.drawImage(x * textureWidth, y * textureHeight, textureWidth, textureHeight, image);
+            atlas.drawImage(x * spriteWidth, y * spriteHeight, spriteWidth, spriteHeight, image);
 
             STBImage.stbi_image_free(image.getData());
         }

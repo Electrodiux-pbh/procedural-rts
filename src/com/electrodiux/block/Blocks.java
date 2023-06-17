@@ -78,6 +78,7 @@ public class Blocks {
 
                 BlockRegister.register("lava", Blocks.LAVA)
                                 .setTexture("lava.png")
+                                .setTransparent(true)
                                 .register();
 
                 BlockRegister.register("diorite", Blocks.DIORITE)
