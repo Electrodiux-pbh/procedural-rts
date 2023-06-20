@@ -17,33 +17,32 @@ public class Camera {
 	private Vector3 position;
 	private Vector3 rotation;
 
-	private float aspectRatio;
+	private float width, height;
+
 	private float zFar;
 	private float zNear;
 	private float fov;
 
 	private Color bg;
 
-	public Camera() {
-		this(16f / 9f);
+	public Camera(float width, float height) {
+		this(FOV, width, height, NEAR_PLANE, FAR_PLANE);
 	}
 
-	public Camera(float aspectRatio) {
-		this(FOV, aspectRatio, NEAR_PLANE, FAR_PLANE);
+	public Camera(float fov, float width, float height, float nearPlane, float farPlane) {
+		this(new Vector3(0, 0, 0), new Vector3(0, 0, 0), fov, width, height, nearPlane, farPlane);
 	}
 
-	public Camera(float fov, float aspectRatio, float nearPlane, float farPlane) {
-		this(new Vector3(0, 0, 0), new Vector3(0, 0, 0), fov, aspectRatio, nearPlane, farPlane);
-	}
-
-	public Camera(Vector3 position, Vector3 rotation, float fov, float aspectRatio, float nearPlane, float farPlane) {
+	public Camera(Vector3 position, Vector3 rotation, float fov, float width, float height, float nearPlane,
+			float farPlane) {
 		this.position = position;
 		this.rotation = rotation;
 
 		this.fov = fov;
-		this.aspectRatio = aspectRatio;
 		this.zNear = nearPlane;
 		this.zFar = farPlane;
+		this.width = width;
+		this.height = height;
 
 		this.bg = new Color(Color.WHITE);
 
@@ -54,7 +53,7 @@ public class Camera {
 
 	public void makeProjection() {
 		projectionMatrix.identity();
-		projectionMatrix.perspective(fov, aspectRatio, zNear, zFar);
+		projectionMatrix.perspective(fov, width / height, zNear, zFar);
 	}
 
 	public Matrix4f getViewMatrix() {
@@ -96,14 +95,18 @@ public class Camera {
 		return bg;
 	}
 
-	public float getAspectRatio() {
-		return aspectRatio;
+	public float getWidth() {
+		return width;
 	}
 
-	public void setAspectRatio(float width, float height) {
-		float ratio = width / height;
-		if (this.aspectRatio != ratio) {
-			this.aspectRatio = ratio;
+	public float getHeight() {
+		return height;
+	}
+
+	public void setDimensions(int width, int height) {
+		if (this.width != width || this.height != height) {
+			this.width = width;
+			this.height = height;
 			makeProjection();
 		}
 	}

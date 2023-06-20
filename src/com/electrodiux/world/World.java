@@ -118,7 +118,7 @@ public class World {
     }
 
     private void generateChunkAsync(ChunkIndex index) {
-        Chunk chunk = new Chunk(index.getX(), index.getZ());
+        Chunk chunk = new Chunk(this, index.getX(), index.getZ());
         chunks.put(index, chunk);
         chunkGeneratorService.execute(() -> {
             generator.generateChunk(chunk);
@@ -191,6 +191,21 @@ public class World {
         return getBlock0(x, y, z);
     }
 
+    public byte getLight(int x, int y, int z) {
+        if (outOfBounds(y))
+            return Chunk.MIN_LIGHT_LEVEL;
+        return getLight0(x, y, z);
+    }
+
+    private byte getLight0(int x, int y, int z) {
+        Chunk chunk = getChunkFromWorldCoords(x, z);
+
+        if (chunk == null)
+            return Chunk.MIN_LIGHT_LEVEL;
+
+        return chunk.getLight(Chunk.getBlockIndexWithWorldCoords(x, y, z));
+    }
+
     public short getBlock(Position pos) {
         return getBlock(pos.getBlockX(), pos.getBlockY(), pos.getBlockZ());
     }
@@ -201,7 +216,7 @@ public class World {
         if (chunk == null)
             return Blocks.AIR;
 
-        return chunk.getBlocks()[Chunk.getBlockIndexWithWorldCoords(x, y, z)];
+        return chunk.getBlockId(Chunk.getBlockIndexWithWorldCoords(x, y, z));
     }
 
     public Collection<Chunk> getLoadedChunks() {

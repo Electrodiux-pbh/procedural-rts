@@ -4,6 +4,10 @@ import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.nio.ByteBuffer;
+import java.util.Objects;
+
+import org.lwjgl.system.MemoryUtil;
 
 import com.electrodiux.block.BlockDefinition;
 import com.electrodiux.block.BlockRegister;
@@ -15,11 +19,15 @@ public class Chunk implements Externalizable {
     public static final int CHUNK_AREA = CHUNK_SIZE * CHUNK_SIZE;
     public static final int CHUNK_HEIGHT = 256; // es potencia natural de 2
 
-    public static final int CHUNK_PALLETE_BATCH_SIZE = 10;
+    public static final byte MAX_LIGHT_LEVEL = 15;
+    public static final byte MIN_LIGHT_LEVEL = 0;
 
     public static final int CHUNK_FORMAT_VERSION = 0;
 
+    private transient World world;
+
     private short[] blocks;
+    private ByteBuffer light;
 
     private int xPos, zPos;
 
@@ -34,12 +42,16 @@ public class Chunk implements Externalizable {
         COMPLETE
     }
 
-    public Chunk(int x, int z) {
+    public Chunk(World world, int x, int z) {
+        this.world = world;
         this.xPos = x;
         this.zPos = z;
-        status = ChunkStatus.EMPTY;
+
+        this.status = ChunkStatus.EMPTY;
 
         blocks = new short[CHUNK_AREA * CHUNK_HEIGHT];
+        light = MemoryUtil.memAlloc(CHUNK_AREA * CHUNK_HEIGHT);
+        MemoryUtil.memSet(light, 0x00);
     }
 
     public short[] getBlocks() {
@@ -68,8 +80,20 @@ public class Chunk implements Externalizable {
         return blocks[getBlockIndex(x, y, z)];
     }
 
+    public short getBlockId(int idx) {
+        Objects.checkIndex(idx, blocks.length);
+        return blocks[idx];
+    }
+
     public BlockDefinition getBlock(int x, int y, int z) {
         short id = getBlockId(x, y, z);
+        if (id == -1)
+            return null;
+        return BlockRegister.getBlock(id);
+    }
+
+    public BlockDefinition getBlock(int idx) {
+        short id = getBlockId(idx);
         if (id == -1)
             return null;
         return BlockRegister.getBlock(id);
@@ -89,6 +113,183 @@ public class Chunk implements Externalizable {
         }
         return 0;
     }
+
+    // #region Light
+
+    public byte getLight(int idx) {
+        Objects.checkIndex(idx, light.limit());
+        return light.get(idx);
+    }
+
+    public byte getLight(int x, int y, int z) {
+        if (outOfBounds(x, y, z))
+            return 0x00;
+        return light.get(getBlockIndex(x, y, z));
+    }
+
+    public byte getBlockLight(int x, int y, int z) {
+        if (outOfBounds(x, y, z))
+            return 0;
+        return getBlockLightFromLight(light.get(getBlockIndex(x, y, z)));
+    }
+
+    public byte getSkyLight(int x, int y, int z) {
+        if (outOfBounds(x, y, z))
+            return 0;
+        return light.get(getBlockIndex(x, y, z));
+    }
+
+    public void setLight(int x, int y, int z, byte light) {
+        if (outOfBounds(x, y, z))
+            return;
+        this.light.put(getBlockIndex(x, y, z), light);
+    }
+
+    public void setLight(int x, int y, int z, byte blockLight, byte skyLight) {
+        if (outOfBounds(x, y, z))
+            return;
+        this.light.put(getBlockIndex(x, y, z), getLight(blockLight, skyLight));
+    }
+
+    public void setSkyLight(int x, int y, int z, byte skyLight) {
+        if (outOfBounds(x, y, z))
+            return;
+
+        int idx = getBlockIndex(x, y, z);
+
+        byte blockLight = getBlockLightFromLight(this.light.get(idx));
+
+        this.light.put(idx, skyLight);
+    }
+
+    public void setBlockLight(int x, int y, int z, byte blockLight) {
+        if (outOfBounds(x, y, z))
+            return;
+
+        int idx = getBlockIndex(x, y, z);
+
+        byte skyLight = getSkyLightFromLight(this.light.get(idx));
+
+        this.light.put(idx, getLight(blockLight, getLight(blockLight, skyLight)));
+    }
+
+    public static byte getLight(byte blockLight, byte skyLight) {
+        return (byte) (((skyLight & 0xF0) << 4) | (blockLight & 0x0F));
+    }
+
+    public static byte getBlockLightFromLight(byte light) {
+        return (byte) (light & 0x0F);
+    }
+
+    public static byte getSkyLightFromLight(byte light) {
+        return (byte) ((light & 0xF0) >> 4);
+    }
+
+    public short getBlockIdWithAdyacent(int x, int y, int z) {
+        if (outOfBounds(y))
+            return Blocks.AIR;
+
+        if (outOfBounds(x, z))
+            return world.getBlock(xPos * CHUNK_SIZE + x, y, zPos * CHUNK_SIZE + z);
+
+        return blocks[getBlockIndex(x, y, z)];
+    }
+
+    public BlockDefinition getBlockWithAdyacent(int x, int y, int z) {
+        if (outOfBounds(y))
+            return null;
+
+        if (outOfBounds(x, z))
+            return BlockRegister.getBlock(world.getBlock(xPos * CHUNK_SIZE + x, y, zPos * CHUNK_SIZE + z));
+
+        return BlockRegister.getBlock(blocks[getBlockIndex(x, y, z)]);
+    }
+
+    public byte getLightWithAdyacent(int x, int y, int z) {
+        if (outOfBounds(y))
+            return Chunk.MIN_LIGHT_LEVEL;
+
+        if (outOfBounds(x, z))
+            return world.getLight(xPos * CHUNK_SIZE + x, y, zPos * CHUNK_SIZE + z);
+
+        return light.get(getBlockIndex(x, y, z));
+    }
+
+    public void calcLight() {
+        for (int x = 0; x < CHUNK_SIZE; x++) {
+            for (int z = 0; z < CHUNK_SIZE; z++) {
+                setSkyLight(x, CHUNK_HEIGHT - 1, z, (byte) 15);
+            }
+        }
+
+        for (int y = CHUNK_HEIGHT - 2; y >= 0; y--) {
+            for (int x = 0; x < CHUNK_SIZE; x++) {
+                for (int z = 0; z < CHUNK_SIZE; z++) {
+                    BlockDefinition block = getBlock(x, y, z);
+
+                    if (block != null && block.emitsLight()) {
+                        setBlockLight(x, y, z, block.getLightEmision());
+                        continue;
+                    }
+
+                    BlockDefinition upBlock = getBlock(x, y + 1, z);
+
+                    if (upBlock == null || upBlock.isTranslucent()) {
+                        setSkyLight(x, y, z, getSkyLight(x, y + 1, z));
+                        continue;
+                    }
+
+                    // Check all neighboring blocks and get the highest light
+                    byte light = 0;
+                    for (int x1 = -1; x1 <= 1; x1++) {
+                        for (int z1 = -1; z1 <= 1; z1++) {
+                            int lx = x + x1;
+                            int lz = z + z1;
+
+                            BlockDefinition block2 = getBlockWithAdyacent(lx, y, lz);
+                            if (block2 == null || block2.isTranslucent()) {
+                                byte light2 = (byte) (getLightWithAdyacent(lx, y + 1, lz) - 1);
+
+                                if (light2 > light)
+                                    light = light2;
+                            }
+                        }
+                    }
+
+                    // Add light from nearby light sources
+                    for (int x1 = -1; x1 <= 1; x1++) {
+                        for (int z1 = -1; z1 <= 1; z1++) {
+                            int lx = x + x1;
+                            int lz = z + z1;
+
+                            BlockDefinition block2 = getBlockWithAdyacent(lx, y, lz);
+                            if (block2 != null && block2.emitsLight()) {
+                                byte light2 = (byte) (block2.getLightEmision() - 1);
+
+                                if (light2 > light)
+                                    light = light2;
+                            }
+                        }
+                    }
+
+                    setSkyLight(x, y, z, light);
+
+                    // Propagate light upwards
+                    if (light > MIN_LIGHT_LEVEL) {
+                        for (int y1 = y + 1; y1 < CHUNK_HEIGHT; y1++) {
+                            if (getBlock(x, y1, z).isTranslucent()) {
+                                setSkyLight(x, y1, z, (byte) (light - 1));
+                            } else {
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // #endregion
 
     public int getWorldXFromLocal(int localX) {
         return xPos * CHUNK_SIZE + localX;
@@ -141,11 +342,20 @@ public class Chunk implements Externalizable {
         return y < 0 || y >= CHUNK_HEIGHT || x < 0 || x >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE;
     }
 
+    public static boolean outOfBounds(int x, int z) {
+        return x < 0 || x >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE;
+    }
+
+    public static boolean outOfBounds(int y) {
+        return y < 0 || y >= CHUNK_HEIGHT;
+    }
+
     public static int getBlockIndexWithWorldCoords(int x, int y, int z) {
         return getBlockIndex(Math.floorMod(x, Chunk.CHUNK_SIZE), y, Math.floorMod(z, Chunk.CHUNK_SIZE));
     }
 
     public void unload() {
+        MemoryUtil.memFree(light);
     }
 
     @Override

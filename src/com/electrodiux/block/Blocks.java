@@ -50,6 +50,7 @@ public class Blocks {
                 BlockRegister.register("water", Blocks.WATER)
                                 .setTexture("water.png")
                                 .setTransparent(true)
+                                .setTranslucent(true)
                                 .register();
 
                 BlockRegister.register("sand", Blocks.SAND)
@@ -74,11 +75,13 @@ public class Blocks {
                 BlockRegister.register("red_tulip", Blocks.RED_TULIP)
                                 .setTexture("red_tulip.png")
                                 .setTransparent(true)
+                                .setTranslucent(true)
                                 .register();
 
                 BlockRegister.register("lava", Blocks.LAVA)
                                 .setTexture("lava.png")
                                 .setTransparent(true)
+                                .setLightEmision(12)
                                 .register();
 
                 BlockRegister.register("diorite", Blocks.DIORITE)
@@ -112,11 +115,13 @@ public class Blocks {
                 BlockRegister.register("blue_orchid", Blocks.BLUE_ORCHID)
                                 .setTexture("blue_orchid.png")
                                 .setTransparent(true)
+                                .setTranslucent(true)
                                 .register();
 
                 BlockRegister.register("poppy", Blocks.POPPY)
                                 .setTexture("poppy.png")
                                 .setTransparent(true)
+                                .setTranslucent(true)
                                 .register();
         }
 }

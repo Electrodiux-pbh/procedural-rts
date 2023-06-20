@@ -9,7 +9,7 @@ public final class MathUtils {
     private MathUtils() {
     }
 
-    public static float clamp(float min, float value, float max) {
+    public static int clamp(int value, int min, int max) {
         if (value < min)
             return min;
         if (value > max)
@@ -17,7 +17,15 @@ public final class MathUtils {
         return value;
     }
 
-    public static double clamp(double min, double value, double max) {
+    public static float clamp(float value, float min, float max) {
+        if (value < min)
+            return min;
+        if (value > max)
+            return max;
+        return value;
+    }
+
+    public static double clamp(double value, double min, double max) {
         if (value < min)
             return min;
         if (value > max)

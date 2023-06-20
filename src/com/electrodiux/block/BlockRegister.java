@@ -14,6 +14,8 @@ import org.lwjgl.opengl.GL11;
 import com.electrodiux.graphics.textures.Sprite;
 import com.electrodiux.graphics.textures.Texture;
 import com.electrodiux.graphics.textures.TextureAtlas;
+import com.electrodiux.math.MathUtils;
+import com.electrodiux.world.Chunk;
 
 public class BlockRegister {
 
@@ -76,7 +78,11 @@ public class BlockRegister {
         String blockId;
 
         Color mapColor;
-        boolean transparent;
+        boolean transparent = false;
+
+        boolean translucent = false;
+        byte lightEmision = 0;
+
         boolean internalFaces = false;
 
         Sprite[] textures;
@@ -138,6 +144,16 @@ public class BlockRegister {
 
         public BlockDefinitionRegister setBlockName(String blockName) {
             this.blockName = blockName;
+            return this;
+        }
+
+        public BlockDefinitionRegister setTranslucent(boolean translucent) {
+            this.translucent = translucent;
+            return this;
+        }
+
+        public BlockDefinitionRegister setLightEmision(int lightEmision) {
+            this.lightEmision = (byte) MathUtils.clamp(lightEmision, Chunk.MIN_LIGHT_LEVEL, Chunk.MAX_LIGHT_LEVEL);
             return this;
         }
 

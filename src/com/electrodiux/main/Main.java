@@ -35,8 +35,7 @@ public class Main {
         System.out.println("Start generating:");
         long startGenerating = System.currentTimeMillis();
         world.generate(12);
-        System.out.println("Time to generate: " + (System.currentTimeMillis() -
-                startGenerating) + "ms");
+        System.out.println("Time to generate: " + (System.currentTimeMillis() - startGenerating) + "ms");
 
         entity = new Entity(UUID.randomUUID(), new Properties().texture("blocks/stone.png").model("player.obj"));
         entity.getPosition().setY(100);

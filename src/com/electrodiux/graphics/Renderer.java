@@ -49,7 +49,7 @@ public class Renderer {
 
         this.chunkBatches = new HashMap<Chunk, ChunkBatch>();
 
-        this.camera = new Camera();
+        this.camera = new Camera(window.getWidth(), window.getHeight());
     }
 
     private void load() {
@@ -61,13 +61,13 @@ public class Renderer {
         camera.setzFar(renderDistance * Chunk.CHUNK_SIZE * 1.5f);
 
         window.setSizeCallback((int width, int height) -> {
-            camera.setAspectRatio(width, height);
+            camera.setDimensions(width, height);
         });
 
         loadFrustrumPlanes();
 
         try {
-            chunksShader = Shader.loadShader("/assets/shaders/chunks.glsl");
+            chunksShader = Shader.loadShader("/assets/shaders/chunks_light.glsl");
             entitiesShader = Shader.loadShader("/assets/shaders/entities.glsl");
         } catch (IOException e) {
             e.printStackTrace();
@@ -347,7 +347,7 @@ public class Renderer {
     private void update(float deltaTime) {
         position.add(getMoveVector(deltaTime));
         rotation.add(getRotationVector(deltaTime));
-        rotation.x = MathUtils.clamp((float) (-Math.PI / 2), rotation.x, (float) (Math.PI / 2));
+        rotation.x = MathUtils.clamp(rotation.x, (float) (-Math.PI / 2), (float) (Math.PI / 2));
 
         camera.position().set(position);
         camera.rotation().set(rotation);
@@ -414,7 +414,7 @@ public class Renderer {
         if (Keyboard.isKeyPressed(Keyboard.GLFW_KEY_LEFT_SHIFT))
             move.add(0, -1, 0);
 
-        velocity = MathUtils.clamp(0, velocity + Mouse.getScrollY() * 4, 300);
+        velocity = MathUtils.clamp(velocity + Mouse.getScrollY() * 4, 0, 300);
 
         return move.normalize().mul(deltaTime * velocity);
     }

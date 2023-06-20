@@ -103,7 +103,7 @@ public class Color implements Serializable {
 	}
 
 	public static Color lerpColors(Color a, Color b, float t, Color output) {
-		t = MathUtils.clamp(0, t, 1);
+		t = MathUtils.clamp(t, 0, 1);
 		output.set(MathUtils.lerp(a.red, b.red, t),
 				MathUtils.lerp(a.green, b.green, t),
 				MathUtils.lerp(a.blue, b.blue, t),

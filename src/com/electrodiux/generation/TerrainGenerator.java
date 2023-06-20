@@ -24,7 +24,7 @@ public abstract class TerrainGenerator {
     public abstract Chunk generateChunk(Chunk chunk);
 
     public Chunk generateChunk(int xPos, int zPos) {
-        Chunk chunk = new Chunk(xPos, zPos);
+        Chunk chunk = new Chunk(world, xPos, zPos);
         return generateChunk(chunk);
     }
 

@@ -260,6 +260,7 @@
     "libraries/lwjgl-zstd-natives-macos.jar",
     "libraries/lwjgl-zstd-natives-windows.jar",
     "libraries/lwjgl-zstd-natives-windows-x86.jar",
-    "libraries/lwjgl-zstd-sources.jar"
+    "libraries/lwjgl-zstd-sources.jar",
+    "libraries/freetype-jni.jar"
   ]
 }
