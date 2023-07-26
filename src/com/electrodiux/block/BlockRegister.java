@@ -1,6 +1,5 @@
 package com.electrodiux.block;
 
-import java.awt.Color;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -11,6 +10,7 @@ import java.util.Objects;
 
 import org.lwjgl.opengl.GL11;
 
+import com.electrodiux.graphics.Color;
 import com.electrodiux.graphics.textures.Sprite;
 import com.electrodiux.graphics.textures.Texture;
 import com.electrodiux.graphics.textures.TextureAtlas;
@@ -65,9 +65,10 @@ public class BlockRegister {
             }
             blocks.put(register.blockId, block);
 
-            blocksMetadata[register.index] = block;
+            blocksMetadata[register.numericalBlockId] = block;
 
-            System.out.println("Registered block: \"" + register.blockId + "\" with index of " + register.index);
+            System.out.println(
+                    "Registered block: \"" + register.blockId + "\" with numerical ID of " + register.numericalBlockId);
         }
 
         textureAtlas = null;
@@ -76,6 +77,7 @@ public class BlockRegister {
     public static class BlockDefinitionRegister {
         String blockName;
         String blockId;
+        short numericalBlockId;
 
         Color mapColor;
         boolean transparent = false;
@@ -88,11 +90,9 @@ public class BlockRegister {
         Sprite[] textures;
         private int[] textureAtlasIndices;
 
-        private short index;
-
-        protected BlockDefinitionRegister(String blockId, short index) {
+        protected BlockDefinitionRegister(String blockId, short numericalBlockId) {
             this.blockId = blockId;
-            this.index = index;
+            this.numericalBlockId = numericalBlockId;
             this.textureAtlasIndices = new int[6];
             Arrays.fill(textureAtlasIndices, -1);
         }

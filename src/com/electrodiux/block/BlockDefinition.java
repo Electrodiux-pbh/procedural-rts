@@ -1,9 +1,9 @@
 package com.electrodiux.block;
 
-import java.awt.Color;
 import java.util.Objects;
 
 import com.electrodiux.block.BlockRegister.BlockDefinitionRegister;
+import com.electrodiux.graphics.Color;
 import com.electrodiux.graphics.textures.Sprite;
 import com.electrodiux.math.MathUtils;
 import com.electrodiux.register.Registrable;
@@ -12,6 +12,7 @@ import com.electrodiux.world.Chunk;
 public class BlockDefinition implements Registrable {
 
     private final String blockId;
+    private final short numericalBlockId;
     private final String blockName;
 
     private final Color mapColor;
@@ -27,6 +28,7 @@ public class BlockDefinition implements Registrable {
     BlockDefinition(BlockDefinitionRegister builder) {
         this.blockName = builder.blockName;
         this.blockId = builder.blockId;
+        this.numericalBlockId = builder.numericalBlockId;
 
         this.mapColor = builder.mapColor;
         this.transparent = builder.transparent;
@@ -37,6 +39,10 @@ public class BlockDefinition implements Registrable {
         this.textures = builder.textures;
 
         this.lightEmision = (byte) MathUtils.clamp(builder.lightEmision, Chunk.MIN_LIGHT_LEVEL, Chunk.MAX_LIGHT_LEVEL);
+    }
+
+    public short getNumericBlockId() {
+        return numericalBlockId;
     }
 
     public String getBlockId() {

@@ -15,9 +15,12 @@ import com.electrodiux.Position;
 import com.electrodiux.block.Blocks;
 import com.electrodiux.entities.Entity;
 import com.electrodiux.generation.TerrainGenerator;
+import com.electrodiux.lightning.LightEngine;
 import com.electrodiux.world.Chunk.ChunkStatus;
 
 public class World {
+
+    private transient LightEngine lightEngine;
 
     private transient TerrainGenerator generator;
 
@@ -34,6 +37,7 @@ public class World {
         this.seed = seed;
         this.chunks = new ConcurrentHashMap<>();
         this.entities = new ConcurrentHashMap<>();
+        this.lightEngine = new LightEngine(this);
 
         this.chunkGeneratorService = Executors.newFixedThreadPool(6);
     }
@@ -113,6 +117,7 @@ public class World {
         chunkGeneratorService.execute(() -> {
             Chunk chunk = generator.generateChunk(xPos, zPos);
             chunks.put(getChunkIndex(xPos, zPos), chunk);
+            chunk.load();
             latch.countDown();
         });
     }
@@ -123,6 +128,7 @@ public class World {
         chunkGeneratorService.execute(() -> {
             generator.generateChunk(chunk);
             chunk.setChunkStatus(ChunkStatus.COMPLETE);
+            chunk.load();
         });
     }
 
@@ -264,6 +270,57 @@ public class World {
                 entity.getPosition().add(0, -displacement, 0);
             }
         }
+    }
+
+    // #endregion
+
+    // #region Lighting
+
+    public LightEngine getLightEngine() {
+        return lightEngine;
+    }
+
+    public void addLight(byte lightLevel, int x, int y, int z) {
+        // Chunk chunk = getChunkFromWorldCoords(x, z);
+        // if (chunk == null)
+        // return;
+
+        // byte initialLightLevel = getLight(x, y, z);
+        // if (initialLightLevel == lightLevel)
+        // return;
+
+        // boolean[] visited = new boolean[Chunk.CHUNK_AREA * CHUNK_HEIGHT];
+        // LinkedList<Position> queue = new LinkedList<>();
+
+        // queue.add(new Position(x, y, z));
+
+        // while (!queue.isEmpty()) {
+        // Position pos = queue.removeFirst();
+        // int posX = pos.getBlockX();
+        // int posY = pos.getBlockY();
+        // int posZ = pos.getBlockZ();
+
+        // if (outOfBounds(posY))
+        // continue;
+
+        // int chunkIndex = Chunk.getBlockIndex(posX, posY, posZ);
+        // if (chunkIndex < 0 || chunkIndex >= visited.length || visited[chunkIndex])
+        // continue;
+
+        // byte currentLightLevel = getLight(posX, posY, posZ);
+        // if (currentLightLevel >= lightLevel)
+        // continue;
+
+        // chunk.setLight(posX, posY, posZ, lightLevel);
+        // visited[Chunk.getBlockIndex(posX, posY, posZ)] = true;
+
+        // queue.add(new Position(posX, posY + 1, posZ)); // up
+        // queue.add(new Position(posX, posY - 1, posZ)); // down
+        // queue.add(new Position(posX, posY, posZ - 1)); // north
+        // queue.add(new Position(posX, posY, posZ + 1)); // south
+        // queue.add(new Position(posX - 1, posY, posZ)); // west
+        // queue.add(new Position(posX + 1, posY, posZ)); // east
+        // }
     }
 
     // #endregion

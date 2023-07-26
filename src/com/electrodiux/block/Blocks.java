@@ -22,6 +22,7 @@ public class Blocks {
         public static final byte MOSSY_STONEBRICKS = 17;
         public static final byte BLUE_ORCHID = 18;
         public static final byte POPPY = 19;
+        public static final byte TORCH = 20;
 
         public static final int FACE_TOP = 4;
         public static final int FACE_BOTTOM = 5;
@@ -122,6 +123,12 @@ public class Blocks {
                                 .setTexture("poppy.png")
                                 .setTransparent(true)
                                 .setTranslucent(true)
+                                .register();
+
+                BlockRegister.register("torch", Blocks.TORCH)
+                                .setTexture("torch.png")
+                                .setTransparent(true)
+                                .setLightEmision(5)
                                 .register();
         }
 }

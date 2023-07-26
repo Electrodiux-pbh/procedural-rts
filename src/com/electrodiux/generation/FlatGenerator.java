@@ -25,6 +25,8 @@ public class FlatGenerator extends TerrainGenerator {
         fill(chunk, 0, 0, 0, 15, 9, 15, Blocks.DIRT);
         fill(chunk, 0, 10, 0, 15, 10, 15, Blocks.GRASS_BLOCK);
 
+        chunk.setBlock(Blocks.TORCH, 5, chunk.getHightestYAt(0, 0), 5);
+
         chunk.setChunkStatus(ChunkStatus.COMPLETE);
 
         return chunk;

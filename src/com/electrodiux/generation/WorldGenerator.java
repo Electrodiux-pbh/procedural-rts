@@ -7,7 +7,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.electrodiux.block.Blocks;
-import com.electrodiux.graphics.textures.BufferedImage;
 import com.electrodiux.math.MathUtils;
 import com.electrodiux.register.Register;
 import com.electrodiux.world.Chunk;
@@ -43,20 +42,21 @@ public class WorldGenerator extends TerrainGenerator {
         // createNoiseImage(continentalnessNoise, size, size, "continentalness");
     }
 
-    private void createNoiseImage(float[] noise, int width, int height, String name) {
-        BufferedImage image = new BufferedImage(width, height, 4);
+    // private void createNoiseImage(float[] noise, int width, int height, String
+    // name) {
+    // BufferedImage image = new BufferedImage(width, height, 4);
 
-        for (int i = 0; i < noise.length; i++) {
-            int x = i % width;
-            int y = i / width;
+    // for (int i = 0; i < noise.length; i++) {
+    // int x = i % width;
+    // int y = i / width;
 
-            int grayScale = (int) Math.round(((noise[i] + 1) / 2f) * 255);
-            image.setColor(x, y, BufferedImage.getColor(grayScale, grayScale,
-                    grayScale));
-        }
+    // int grayScale = (int) Math.round(((noise[i] + 1) / 2f) * 255);
+    // image.setColor(x, y, BufferedImage.getColor(grayScale, grayScale,
+    // grayScale));
+    // }
 
-        BufferedImage.saveImage(image, name + "(" + seed + ").png");
-    }
+    // BufferedImage.saveImage(image, name + "(" + seed + ").png");
+    // }
 
     public Register<Structure> getStructureRegistry() {
         return structureRegistry;
@@ -77,6 +77,8 @@ public class WorldGenerator extends TerrainGenerator {
         fill(chunk, 0, 0, 0, CHUNK_SIZE, 0, CHUNK_SIZE, Blocks.STONE);
 
         chunk.setChunkStatus(ChunkStatus.COMPLETE);
+
+        chunk.setBlock(Blocks.TORCH, 0, chunk.getHightestYAt(0, 0) + 1, 0);
 
         return chunk;
     }

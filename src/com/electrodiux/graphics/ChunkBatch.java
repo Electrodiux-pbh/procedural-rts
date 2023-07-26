@@ -16,6 +16,7 @@ import com.electrodiux.block.BlockRegister;
 import com.electrodiux.block.Blocks;
 import com.electrodiux.graphics.textures.Sprite;
 import com.electrodiux.graphics.textures.Texture;
+import com.electrodiux.lightning.LightEngine;
 import com.electrodiux.world.Chunk;
 import com.electrodiux.world.World;
 
@@ -55,8 +56,7 @@ public class ChunkBatch {
         isComputed = false;
 
         resetBatches();
-
-        chunk.calcLight();
+        LightEngine.calculateLight(chunk);
 
         for (int x = 0; x < Chunk.CHUNK_SIZE; x++) {
             for (int z = 0; z < Chunk.CHUNK_SIZE; z++) {
@@ -157,7 +157,7 @@ public class ChunkBatch {
     }
 
     private Face getFace(int faceIdx, BlockDefinition block, byte light) {
-        float[] vertices = new float[12];
+        int[] vertices = new int[12];
         System.arraycopy(cubeVertices, faceIdx * 12, vertices, 0, 12);
 
         Sprite texture = block.getTexture(faceIdx);
@@ -171,16 +171,16 @@ public class ChunkBatch {
         return face;
     }
 
-    private float[] getVertices(float[] vertices) {
+    private int[] getVertices(int[] vertices) {
         Vector4f vec = new Vector4f();
 
         for (int i = 0; i < vertices.length; i += 3) {
             vec.set(vertices[i + 0], vertices[i + 1], vertices[i + 2], 1);
             vec.mul(transformMatrix);
 
-            vertices[i + 0] = vec.x;
-            vertices[i + 1] = vec.y;
-            vertices[i + 2] = vec.z;
+            vertices[i + 0] = (int) vec.x;
+            vertices[i + 1] = (int) vec.y;
+            vertices[i + 2] = (int) vec.z;
         }
 
         return vertices;
@@ -233,42 +233,42 @@ public class ChunkBatch {
 
     // #region Block Faces
 
-    private static final float[] cubeVertices = {
+    private static final int[] cubeVertices = {
             // Front face
-            1.0f, 0.0f, 1.0f, // Bottom-right
-            0.0f, 0.0f, 1.0f, // Bottom-left
-            0.0f, 1.0f, 1.0f, // Top-left
-            1.0f, 1.0f, 1.0f, // Top-right
+            1, 0, 1, // Bottom-right
+            0, 0, 1, // Bottom-left
+            0, 1, 1, // Top-left
+            1, 1, 1, // Top-right
 
             // Back face
-            0.0f, 0.0f, 0.0f, // Bottom-left
-            1.0f, 0.0f, 0.0f, // Bottom-right
-            1.0f, 1.0f, 0.0f, // Top-right
-            0.0f, 1.0f, 0.0f, // Top-left
+            0, 0, 0, // Bottom-left
+            1, 0, 0, // Bottom-right
+            1, 1, 0, // Top-right
+            0, 1, 0, // Top-left
 
             // Left face
-            0.0f, 0.0f, 1.0f, // Bottom-back
-            0.0f, 0.0f, 0.0f, // Bottom-front
-            0.0f, 1.0f, 0.0f, // Top-front
-            0.0f, 1.0f, 1.0f, // Top-back
+            0, 0, 1, // Bottom-back
+            0, 0, 0, // Bottom-front
+            0, 1, 0, // Top-front
+            0, 1, 1, // Top-back
 
             // Right face
-            1.0f, 0.0f, 0.0f, // Bottom-front
-            1.0f, 0.0f, 1.0f, // Bottom-back
-            1.0f, 1.0f, 1.0f, // Top-back
-            1.0f, 1.0f, 0.0f, // Top-front
+            1, 0, 0, // Bottom-front
+            1, 0, 1, // Bottom-back
+            1, 1, 1, // Top-back
+            1, 1, 0, // Top-front
 
             // Top face
-            1.0f, 1.0f, 1.0f, // Front-right
-            0.0f, 1.0f, 1.0f, // Front-left
-            0.0f, 1.0f, 0.0f, // Back-left
-            1.0f, 1.0f, 0.0f, // Back-right
+            1, 1, 1, // Front-right
+            0, 1, 1, // Front-left
+            0, 1, 0, // Back-left
+            1, 1, 0, // Back-right
 
             // Bottom face
-            1.0f, 0.0f, 0.0f, // Back-right
-            0.0f, 0.0f, 0.0f, // Back-left
-            0.0f, 0.0f, 1.0f, // Front-left
-            1.0f, 0.0f, 1.0f, // Front-right
+            1, 0, 0, // Back-right
+            0, 0, 0, // Back-left
+            0, 0, 1, // Front-left
+            1, 0, 1, // Front-right
     };
 
     // #endregion
@@ -452,13 +452,13 @@ public class ChunkBatch {
 
     private static class Face {
 
-        private float[] vertices;
+        private int[] vertices;
         private float[] texCoords;
 
         private byte lightLevel;
         private short lightColor;
 
-        public Face(float[] vertices, float[] texCoords, int lightLevel) {
+        public Face(int[] vertices, float[] texCoords, int lightLevel) {
             this.vertices = vertices;
             this.texCoords = texCoords;
             this.lightLevel = (byte) lightLevel;
@@ -466,7 +466,7 @@ public class ChunkBatch {
             this.lightColor = (short) 0xfff;
         }
 
-        public void set(float[] vertices, float[] texCoords, int lightLevel) {
+        public void set(int[] vertices, float[] texCoords, int lightLevel) {
             this.vertices = vertices;
             this.texCoords = texCoords;
             this.lightLevel = (byte) lightLevel;

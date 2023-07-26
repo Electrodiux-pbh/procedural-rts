@@ -54,6 +54,18 @@ public class Position {
         return z;
     }
 
+    public float getX() {
+        return x;
+    }
+
+    public float getY() {
+        return y;
+    }
+
+    public float getZ() {
+        return z;
+    }
+
     public int getBlockZ() {
         return (int) z;
     }

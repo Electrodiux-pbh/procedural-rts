@@ -9,9 +9,12 @@ import java.util.Objects;
 
 import org.lwjgl.system.MemoryUtil;
 
+import com.electrodiux.Manager;
 import com.electrodiux.block.BlockDefinition;
 import com.electrodiux.block.BlockRegister;
 import com.electrodiux.block.Blocks;
+import com.electrodiux.events.ChunkLoadEvent;
+import com.electrodiux.events.ChunkUnloadEvent;
 
 public class Chunk implements Externalizable {
 
@@ -103,6 +106,10 @@ public class Chunk implements Externalizable {
         if (outOfBounds(x, y, z))
             return;
         blocks[getBlockIndex(x, y, z)] = block;
+    }
+
+    public void setBlock(BlockDefinition block, int x, int y, int z) {
+        this.setBlock(block.getNumericBlockId(), x, y, z);
     }
 
     public int getHightestYAt(int x, int z) {
@@ -215,80 +222,6 @@ public class Chunk implements Externalizable {
         return light.get(getBlockIndex(x, y, z));
     }
 
-    public void calcLight() {
-        for (int x = 0; x < CHUNK_SIZE; x++) {
-            for (int z = 0; z < CHUNK_SIZE; z++) {
-                setSkyLight(x, CHUNK_HEIGHT - 1, z, (byte) 15);
-            }
-        }
-
-        for (int y = CHUNK_HEIGHT - 2; y >= 0; y--) {
-            for (int x = 0; x < CHUNK_SIZE; x++) {
-                for (int z = 0; z < CHUNK_SIZE; z++) {
-                    BlockDefinition block = getBlock(x, y, z);
-
-                    if (block != null && block.emitsLight()) {
-                        setBlockLight(x, y, z, block.getLightEmision());
-                        continue;
-                    }
-
-                    BlockDefinition upBlock = getBlock(x, y + 1, z);
-
-                    if (upBlock == null || upBlock.isTranslucent()) {
-                        setSkyLight(x, y, z, getSkyLight(x, y + 1, z));
-                        continue;
-                    }
-
-                    // Check all neighboring blocks and get the highest light
-                    byte light = 0;
-                    for (int x1 = -1; x1 <= 1; x1++) {
-                        for (int z1 = -1; z1 <= 1; z1++) {
-                            int lx = x + x1;
-                            int lz = z + z1;
-
-                            BlockDefinition block2 = getBlockWithAdyacent(lx, y, lz);
-                            if (block2 == null || block2.isTranslucent()) {
-                                byte light2 = (byte) (getLightWithAdyacent(lx, y + 1, lz) - 1);
-
-                                if (light2 > light)
-                                    light = light2;
-                            }
-                        }
-                    }
-
-                    // Add light from nearby light sources
-                    for (int x1 = -1; x1 <= 1; x1++) {
-                        for (int z1 = -1; z1 <= 1; z1++) {
-                            int lx = x + x1;
-                            int lz = z + z1;
-
-                            BlockDefinition block2 = getBlockWithAdyacent(lx, y, lz);
-                            if (block2 != null && block2.emitsLight()) {
-                                byte light2 = (byte) (block2.getLightEmision() - 1);
-
-                                if (light2 > light)
-                                    light = light2;
-                            }
-                        }
-                    }
-
-                    setSkyLight(x, y, z, light);
-
-                    // Propagate light upwards
-                    if (light > MIN_LIGHT_LEVEL) {
-                        for (int y1 = y + 1; y1 < CHUNK_HEIGHT; y1++) {
-                            if (getBlock(x, y1, z).isTranslucent()) {
-                                setSkyLight(x, y1, z, (byte) (light - 1));
-                            } else {
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
     // #endregion
 
     public int getWorldXFromLocal(int localX) {
@@ -354,8 +287,14 @@ public class Chunk implements Externalizable {
         return getBlockIndex(Math.floorMod(x, Chunk.CHUNK_SIZE), y, Math.floorMod(z, Chunk.CHUNK_SIZE));
     }
 
+    public void load() {
+        Manager.eventManager().fireEvent(new ChunkLoadEvent(this));
+    }
+
     public void unload() {
         MemoryUtil.memFree(light);
+
+        Manager.eventManager().fireEvent(new ChunkUnloadEvent(this));
     }
 
     @Override

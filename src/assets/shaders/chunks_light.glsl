@@ -12,8 +12,6 @@ uniform vec4 fogColor;
 uniform float fogDistance;
 const float gradient = 4;
 
-uniform vec4 skyColor;
-
 out vec2 texCoords;
 out float visibility;
 out vec4 transitionFogColor;
@@ -46,8 +44,6 @@ void main()
 
 	float distance = length(positionRelativeToCamera.xyz);
 	visibility = clamp(exp(-pow((distance + 10) / fogDistance, fogDistance / gradient)), 0, 1);
-
-	transitionFogColor = mix(skyColor, fogColor, clamp(exp(-pow((distance - 10) / fogDistance, fogDistance / gradient)), 0, 1));
 }
 
 #type fragment
@@ -55,8 +51,7 @@ void main()
 
 in vec2 texCoords;
 in float visibility;
-
-in vec4 transitionFogColor;
+uniform vec4 skyColor;
 
 in float lightBrightness;
 in vec3 lightColor;
@@ -74,5 +69,5 @@ void main()
 
 	color = textureColor * mix(0.1, 1, lightBrightness) * vec4(mix(vec3(1.0, 1.0, 1.0), lightColor, lightBrightness), 1.0);
 
-	color = mix(transitionFogColor, color, visibility);
+	color = mix(skyColor, color, visibility);
 }
